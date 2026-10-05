@@ -88,15 +88,27 @@
   - Degradation probability $P_{\text{deg}}(t + H) \in [0, 1]$ for horizon $H \in \{1\text{s}, 3\text{s}, 5\text{s}, 10\text{s}\}$.
 
 ### 2.3. Navigation & Dead Reckoning (`navigation/`)
-- **Inputs:** Tri-axial specific force $\mathbf{f}^b$, tri-axial angular rates $\boldsymbol{\omega}_{ib}^b$, prior state $\mathbf{x}_{k-1}$, covariance $\mathbf{P}_{k-1}$.
-- **Outputs:**
-  - Navigation state vector $\mathbf{x}_k = [\mathbf{p}_k, \mathbf{v}_k, \boldsymbol{\psi}_k]^T$ (position, velocity, attitude).
-  - State covariance matrix $\mathbf{P}_k$.
-  - Hybrid fused state from EKF when GNSS measurement updates are applied.
+- **Inputs:** Causal IMU observations (`IMUObservation`: $a_{\text{long}}$, $a_{\text{lat}}$, $\omega_z$, $v_{\text{wheel}}$, $\Delta t$), prior navigation state $\mathbf{x}_{k-1}$, covariance $\mathbf{P}_{k-1}$, and GNSS observations when available.
+- **Implementations:**
+  - `DeadReckoningEngine`: Strapdown 2D dead reckoning propagating position, velocity, and ENU heading solely from odometry and gyroscope.
+  - `ExtendedKalmanFilter`: 6-state loosely-coupled filter:
+    $$\mathbf{x} = [p_E, p_N, v_E, v_N, \theta, b_g]^T \in \mathbb{R}^6$$
+    - Prediction step driven by wheel odometry speed and yaw rate.
+    - Quality-adaptive measurement noise $\mathbf{R}_k = \mathbf{R}_{\text{nominal}} (1 + \gamma \frac{1 - Q_k}{Q_k})$.
+    - Normalized Innovation Squared (NIS) gating with $\chi^2(4)$ threshold ($13.28$ at $99\%$).
+    - Joseph-form covariance updates for numerical stability.
+- **Outputs (`EKFState`):**
+  - Continuous pose: $(p_E, p_N)$ in meters, velocity $(v_E, v_N)$ in m/s, heading $\theta$ in radians.
+  - Full $6 \times 6$ covariance matrix $\mathbf{P}_k$.
+  - Horizontal uncertainty metrics (`NavigationUncertainty`): $\sigma_{\text{horiz}}$, $95\%$ confidence ellipse radius $r_{95} = \sqrt{5.991 \cdot \lambda_{\max}}$, covariance trace $\text{Tr}(\mathbf{P})$.
 
-### 2.4. DR Survivability (`policy/survivability.py`)
-- **Inputs:** Current IMU noise characteristics, motion state, covariance $\mathbf{P}_k$, target outage duration $T_{\text{out}}$, error bound $E_{\text{threshold}}$.
-- **Outputs:** Estimated probability $P_{\text{surv}}(T_{\text{out}}) = P(\|\mathbf{e}_{\text{DR}}(t + T_{\text{out}})\| \le E_{\text{threshold}})$.
+### 2.4. DR Survivability Engine (`policy/survivability.py`)
+- **Inputs:** Current filter state $\mathbf{x}_t$, covariance $\mathbf{P}_t$, vehicle ground speed $v_t$, candidate outage duration $T_{\text{out}}$, operational error bound $E_{\text{threshold}}$.
+- **Mathematical Model:** Bounded variance growth:
+  $$\sigma_{\text{pos}}^2(T) = \sigma_{\text{pos}, 0}^2 + \sigma_v^2 T^2 + \frac{1}{3} v^2 \sigma_\theta^2 T^2 + \frac{1}{12} v^2 \sigma_\omega^2 T^4$$
+- **Outputs (`SurvivabilityEstimate`):**
+  - Analytical survivability probability: $S(T, E_{\text{threshold}}) = 1 - \exp\left(-\frac{E_{\text{threshold}}^2}{2 \sigma_{\text{pos}}^2(T)}\right) \in [0.0, 1.0]$.
+  - Predicted survivable duration $T_{\text{surv}}$ in seconds (duration until $S(T) < 0.50$).
 
 ### 2.5. VYRA Forecast Engine (`forecasting/`)
 - **Inputs:** Current multimodal state representation $\mathbf{s}_t = [\mathbf{q}_t, \mathbf{x}_t, \mathbf{P}_t, P_{\text{deg}}, \text{history}]$, candidate action $A \in \{\text{GNSS}, \text{HYBRID}, \text{DR}\}$.

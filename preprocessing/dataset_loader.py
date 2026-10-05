@@ -135,7 +135,12 @@ def standardize_columns(df: pd.DataFrame) -> pd.DataFrame:
 
     # Compute standard SI units if converted forms are missing
     if "height_km" in df.columns and "altitude" not in df.columns:
-        df["altitude"] = pd.to_numeric(df["height_km"], errors="coerce") * 1000.0
+        raw_h = pd.to_numeric(df["height_km"], errors="coerce")
+        # In IO-VNBD, despite header 'Height (km)', values (90-145) are in meters above sea level
+        if raw_h.dropna().mean() > 5.0:
+            df["altitude"] = raw_h
+        else:
+            df["altitude"] = raw_h * 1000.0
     if "velocity_kmh" in df.columns and "speed_mps" not in df.columns:
         df["speed_mps"] = pd.to_numeric(df["velocity_kmh"], errors="coerce") / 3.6
     if "acc_y_g" in df.columns and "acc_y" not in df.columns:

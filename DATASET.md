@@ -95,3 +95,25 @@ Calculated from `results/processed/gnss_label_statistics.json` under standard na
 | **Test** | `V-S3a` | 30 (0.122%) | 70 (0.284%) | 110 (0.447%) | 210 (0.853%) |
 | **Total** | Aggregate | **339 (0.199%)** | **596 (0.350%)** | **807 (0.474%)** | **1,307 (0.768%)** |
 
+---
+
+## 7. Verified Sensor Channels & Coordinate Conventions (Phase 3)
+
+### 7.1 Sensor Channels and Empirical Units
+1. **Longitudinal Acceleration (`Indicated Longitudinal Acceleration (g)`):**
+   - Unit: Multiples of standard gravity $g$ ($9.80665\text{ m/s}^2$). Range: $[-0.59g, +0.34g]$.
+   - Correlation with forward velocity derivative $\frac{dv}{dt}$: $r = +0.8327$.
+2. **Lateral Acceleration (`Indicated Lateral Acceleration (g)`):**
+   - Unit: Multiples of standard gravity $g$. Range: $[-0.47g, +0.40g]$.
+   - Correlation with centripetal acceleration $v \cdot \omega_z$: $r = +0.9602$.
+3. **Yaw Rate (`Yaw Rate (deg/sec)`):**
+   - Unit: Degrees per second around vertical axis. Range: $[-42.2^\circ/\text{s}, +35.8^\circ/\text{s}]$.
+   - Convention: $+Z$ pointing up (right-handed convention). Left turn (counter-clockwise) is positive ($\omega_z > 0$).
+   - Correlation with differential rear wheel speed $(v_{\text{right}} - v_{\text{left}})$: $r = +0.9773$.
+   - Correlation with compass heading derivative $\frac{d\psi}{dt}$: $r = -0.6698$ (due to clockwise compass azimuth convention).
+4. **Wheel Speed (`Indicated Vehicle Speed (km/hr)`):**
+   - Unit: km/h from vehicle CAN bus wheel rotation encoders. Divided by 3.6 for SI m/s.
+5. **Altitude / Height (`Height (km)` Header Anomaly):**
+   - **Crucial Dataset Finding:** Despite column header labeled `Height (km)`, numerical values range between $92.05\text{ m}$ and $143.89\text{ m}$ (mean $123.25\text{ m}$), which reflects actual elevation in meters above sea level in Coventry, UK. Values are treated directly as meters without multiplying by 1000.
+
+

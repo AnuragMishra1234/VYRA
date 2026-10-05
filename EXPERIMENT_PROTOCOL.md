@@ -122,3 +122,25 @@ This document specifies the experimental protocol governing all data handling, m
    - Lead time $t_{\text{lead}} = t_{\text{onset}} - t_{\text{warning}}$ for each contiguous degradation event.
    - False Alarm Rate per Hour: $N_{\text{false alarms}} / T_{\text{hours}}$, where a false alarm is a positive prediction at epoch $t$ with $Y(t, H) = 0$.
 
+---
+
+## 4. Phase 3 Navigation Estimation & Uncertainty Protocol (Section T)
+
+### T. Navigation Evaluation Protocol
+1. **Baselines Benchmarked:**
+   - **GNSS-only:** Accepts direct geodetic fixes; applies Zero-Order Hold during signal loss/outages.
+   - **Pure DR:** Open-loop 2D strapdown integration from initial trajectory fix using wheel odometry speed and IMU gyroscope yaw rate.
+   - **EKF Hybrid (Fixed R):** 6-state filter with static nominal observation covariance $\mathbf{R}_{\text{nominal}} = \text{diag}([2.25, 2.25, 0.0625, 0.0625])$.
+   - **EKF Hybrid (Quality-Adaptive R):** Dynamic inflation $\mathbf{R}_k = \mathbf{R}_{\text{nominal}} (1 + \gamma \frac{1 - Q_k}{Q_k})$ conditioned on Phase 2 composite quality score $Q_k$.
+2. **Deterministic Outage Evaluation Schedule:**
+   - Standard outage durations: $T_{\text{outage}} \in \{1.0\text{s}, 2.0\text{s}, 5.0\text{s}, 10.0\text{s}, 20.0\text{s}, 30.0\text{s}\}$.
+   - Inter-outage spacing: $\ge 50.0\text{s}$ pristine recovery time.
+   - Measures: terminal error, peak error, empirical drift rate ($\Delta e / T$).
+3. **Uncertainty Calibration Protocol:**
+   - Empirical coverage: $\frac{1}{N} \sum_{i=1}^N \mathbb{I}(\|\mathbf{p}_{\text{est}, i} - \mathbf{p}_{\text{gt}, i}\| \le r_{95, i})$.
+   - Evaluated on 95% confidence radius $r_{95} = \sqrt{5.991 \cdot \lambda_{\max}(\mathbf{P}_{\text{pos}})}$.
+4. **DR Survivability Protocol:**
+   - Evaluates analytical model $S(T, E_{\text{thresh}}) = 1 - \exp\left(-\frac{E_{\text{thresh}}^2}{2 \sigma_{\text{pos}}^2(T)}\right)$ against actual empirical duration within $E_{\text{threshold}} = 5.0\text{m}$.
+   - Measures Mean Absolute Error (MAE), over-confidence rate, and over-conservatism rate.
+
+
