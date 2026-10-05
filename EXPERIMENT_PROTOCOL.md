@@ -143,4 +143,57 @@ This document specifies the experimental protocol governing all data handling, m
    - Evaluates analytical model $S(T, E_{\text{thresh}}) = 1 - \exp\left(-\frac{E_{\text{thresh}}^2}{2 \sigma_{\text{pos}}^2(T)}\right)$ against actual empirical duration within $E_{\text{threshold}} = 5.0\text{m}$.
    - Measures Mean Absolute Error (MAE), over-confidence rate, and over-conservatism rate.
 
+---
+
+## 5. Phase 4 Action-Conditioned Forecasting & Policy Evaluation Protocol (Section U)
+
+### U.1 Forecasting Model Evaluation Protocol
+1. **Partitioning & Preprocessing:**
+   - Train on `V-S1` (77,619 action-conditioned samples across GNSS, HYBRID, DR).
+   - Calibrate hyperparameters and conformal prediction bounds on `V-S2` (140,814 samples).
+   - Evaluate exactly once out-of-sample on held-out `V-S3a` (36,933 samples).
+2. **Model Architectures Compared:**
+   - Heuristic Persistence Baseline (`PersistenceForecastBaseline`).
+   - Regularized Ridge Linear Regression ($\alpha=10.0$).
+   - Random Forest Regressor ($N_{\text{trees}}=80$, max depth 10).
+   - XGBoost Gradient Boosted Trees ($N_{\text{trees}}=120$, max depth 5, $\eta=0.08$).
+3. **Continuous Regression Metrics:**
+   - RMSE: $\sqrt{\frac{1}{N}\sum (\widehat{y}_i - y_i)^2}$.
+   - MAE: $\frac{1}{N}\sum |\widehat{y}_i - y_i|$.
+   - Spearman Rank Correlation ($\rho$) and Pearson Correlation ($r$).
+   - Safety Underestimation: P95 error and maximum positive residual $\max(0, y_i - \widehat{y}_i)$.
+4. **Action Ranking & Regret Protocol:**
+   - Top-1 Optimal Mode Match: $\frac{1}{N}\sum \mathbb{I}(\arg\min_A \widehat{e}(A) = \arg\min_A e(A))$.
+   - Pairwise Ranking Accuracy across all distinct mode pairs $(A_i, A_j)$.
+   - Decision Regret: $e(t, \text{action}_{\text{chosen}}) - e(t, \text{action}_{\text{oracle}})$.
+
+### U.2 Multi-Horizon Scaling Protocol
+- Evaluated across standard horizons $H \in \{1.0\text{s}, 3.0\text{s}, 5.0\text{s}, 10.0\text{s}\}$.
+- Assesses error accumulation rate and ranking degradation as horizon extends.
+
+### U.3 Systematic Forecasting Ablation Protocol
+- **Ablation A:** Full VYRA multimodal model (all 21 features + action interactions).
+- **Ablation B:** Without Phase 2 degradation probabilities.
+- **Ablation C:** Without analytical DR error/survivability bounds.
+- **Ablation D:** Without candidate action interactions (single global error predictor).
+- **Ablation E:** Restricted to instantaneous signal quality $Q_t$ alone.
+
+### U.4 Closed-Loop Policy Evaluation Protocol
+1. **Simulation Environment:**
+   - Evaluated on held-out test trajectory `V-S3a` ($24,621$ epochs at $10\text{ Hz}$).
+   - Standard outage schedule: 15 deterministic outages ($T \in \{2\text{s}, 5\text{s}, 10\text{s}, 20\text{s}, 30\text{s}\}$, $2,010$ outage epochs = $8.16\%$ of trajectory).
+2. **Policies Compared:**
+   - Policy 1: GNSS-Only Baseline (zero-order hold during outage).
+   - Policy 2: Pure DR Baseline (open-loop strapdown drift).
+   - Policy 3: Fixed HYBRID Baseline (continuous loosely coupled EKF).
+   - Policy 4: Reactive Baseline Policy (instantaneous threshold-based switching).
+   - Policy 5: VYRA Forecast-Driven Adaptive Policy (multi-objective risk optimization).
+3. **Evaluation Metrics:**
+   - Navigation: ATE ($m$), RMSE ($m$), Max Error ($m$), 5.0m and 10.0m violation rates (%), final drift ($m$).
+   - Switching Stability: Total handovers, chattering handovers (transitions with dwell $< \tau_{\text{dwell}}$), chattering rate (%), unnecessary handovers, mean dwell time ($s$), active mode distribution (%).
+4. **Policy Ablation & Sensitivity Protocol:**
+   - Dwell time constraint ablation ($\tau_{\text{dwell}} = 0$ vs $2.0\text{s}$).
+   - Switching penalty ablation ($\lambda_{\text{switch}} = 0$ vs $1.0\text{m}$).
+   - Risk weight Pareto analysis ($\beta \in \{0.5, 1.0, 2.0, 5.0\}$).
+
 

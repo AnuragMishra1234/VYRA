@@ -110,16 +110,34 @@
   - Analytical survivability probability: $S(T, E_{\text{threshold}}) = 1 - \exp\left(-\frac{E_{\text{threshold}}^2}{2 \sigma_{\text{pos}}^2(T)}\right) \in [0.0, 1.0]$.
   - Predicted survivable duration $T_{\text{surv}}$ in seconds (duration until $S(T) < 0.50$).
 
-### 2.5. VYRA Forecast Engine (`forecasting/`)
-- **Inputs:** Current multimodal state representation $\mathbf{s}_t = [\mathbf{q}_t, \mathbf{x}_t, \mathbf{P}_t, P_{\text{deg}}, \text{history}]$, candidate action $A \in \{\text{GNSS}, \text{HYBRID}, \text{DR}\}$.
+### 2.5. VYRA Action-Conditioned Forecast Engine (`forecasting/`)
+- **Inputs:**
+  - Decision-time causal state feature vector $\mathbf{s}_t \in \mathbb{R}^{21}$ combining GNSS quality metrics ($Q_t, N_{\text{eff}}, |v_{\text{GPS}} - v_{\text{wheel}}|$, rolling temporal means/stds), vehicle kinematics ($v, \|\mathbf{a}\|, |\omega_z|$), EKF covariance trace $\text{Tr}(\mathbf{P}_t)$, 95% confidence radius $r_{95, t}$, and analytical DR survivability bounds ($\sigma_{\text{DR}}(H), \tau_{\text{surv}}$).
+  - Candidate navigation action $A \in \{\text{GNSS}, \text{HYBRID}, \text{DR}\}$ encoded as a 3-element one-hot vector $\mathbf{a} \in \{0, 1\}^3$.
+  - Forward forecast horizon $H \in \{1.0\text{s}, 3.0\text{s}, 5.0\text{s}, 10.0\text{s}\}$.
+- **Model Architectures:**
+  - Heuristic Persistence Baseline (`PersistenceForecastBaseline`).
+  - Regularized Ridge Linear Regression (`RidgeForecastModel`).
+  - Random Forest Regressor (`RandomForestForecastModel`).
+  - Gradient Boosted Decision Trees (`XGBoostForecastModel`).
 - **Outputs:**
-  - Forecasted localization error $\widehat{e}(A, H)$.
-  - Forecasted error-bound violation probability $\widehat{p}_{\text{viol}}(A, H)$.
+  - Counterfactual maximum localization error forecast: $\widehat{e}_{\max}(s_t, A, H)$ (meters).
+  - Error-bound violation risk: $\widehat{P}_{\text{viol}}(s_t, A, H) = P(e_{\max} > E_{\text{threshold}})$.
+  - Conformal distribution-free safety upper bound: $\widehat{e}_{\max} + q_{1-\alpha}$ guaranteeing $95\%$ empirical test coverage.
 
-### 2.6. Adaptive Policy (`policy/`)
-- **Inputs:** Forecast vectors $\{\widehat{e}(A, H), \widehat{p}_{\text{viol}}(A, H)\}_{\forall A}$, current active mode $M_{t-1}$, time elapsed in current mode $\Delta t_{\text{mode}}$.
-- **Outputs:** Mode selection $M_t \in \{\text{GNSS}, \text{HYBRID}, \text{DR}\}$ and handover decision flag.
-- **Constraints:** Enforces minimum dwell time $\tau_{\text{dwell}}$ and switching penalty $\lambda_{\text{switch}}$.
+### 2.6. Adaptive Navigation Policy (`policy/`)
+- **Inputs:**
+  - Candidate mode forecasts $\{\widehat{e}_{\max}(A, H), \widehat{P}_{\text{viol}}(A, H)\}_{\forall A \in \{\text{GNSS}, \text{HYBRID}, \text{DR}\}}$.
+  - Analytical DR survivability duration $\tau_{\text{surv}}(t)$.
+  - Active operating mode $M_{t-1}$ and elapsed dwell duration $\Delta t_{\text{mode}}$.
+- **Multi-Objective Cost Formulation:**
+  $$J(A) = \widehat{e}_{\max}(A, H) + \beta \cdot E_{\text{threshold}} \cdot \widehat{P}_{\text{viol}}(A, H) + \lambda_{\text{switch}} \cdot \mathbb{I}(A \ne M_{t-1}) + \Pi_{\text{DR}}(A)$$
+  where $\beta = 2.0$, $E_{\text{threshold}} = 5.0\text{m}$, $\lambda_{\text{switch}} = 1.0\text{m}$, and $\Pi_{\text{DR}}(A)$ is an explicit survivability barrier.
+- **Stability and Execution Constraints:**
+  - Minimum dwell time constraint $\tau_{\text{dwell}} = 2.0\text{s}$ ($20$ epochs at $10\text{ Hz}$).
+  - Hysteresis margin $\epsilon_{\text{hyst}} = 0.5\text{m}$ preventing switching jitter.
+  - Emergency safety override ($E_{\text{emergency}} = 15.0\text{m}$ or sensor dropout) bypassing dwell constraints during critical faults.
+- **Outputs:** Selected discrete navigation mode $M_t \in \{\text{GNSS}, \text{HYBRID}, \text{DR}\}$ and transition telemetry.
 
 ---
 

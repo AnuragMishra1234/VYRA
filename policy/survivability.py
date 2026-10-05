@@ -110,21 +110,26 @@ class DRSurvivabilityEstimator:
         max_search_duration_s: float = 60.0,
     ) -> float:
         """Find the maximum outage duration T such that S(T) >= confidence_cutoff."""
-        # Binary search for T in [0, max_search_duration_s]
-        low = 0.0
-        high = float(max_search_duration_s)
+        # Analytical bi-quadratic root for S(T) = confidence_cutoff:
+        # P = 1 - exp(- E^2 / (2 * var_T)) >= cutoff
+        # -> var_T <= - E^2 / (2 * ln(1 - cutoff))
+        var_target = - (error_threshold_m**2) / (2.0 * np.log(max(1e-6, 1.0 - confidence_cutoff)))
+        if initial_pos_var >= var_target:
+            return 0.0
 
-        for _ in range(30):
-            mid = 0.5 * (low + high)
-            prob = self.compute_survivability_probability(
-                initial_pos_var, speed_mps, initial_yaw_var, mid, error_threshold_m
-            )
-            if prob >= confidence_cutoff:
-                low = mid
-            else:
-                high = mid
+        v = max(0.0, float(speed_mps))
+        a_quad = (1.0 / 12.0) * (v**2) * (self.sigma_omega**2)
+        b_quad = (self.sigma_v**2) + (1.0 / 3.0) * (v**2) * max(0.0, float(initial_yaw_var))
+        c_quad = float(initial_pos_var) - var_target
 
-        return round(float(low), 2)
+        discrim = max(0.0, b_quad**2 - 4.0 * a_quad * c_quad)
+        if a_quad > 1e-12:
+            u_quad = (-b_quad + np.sqrt(discrim)) / (2.0 * a_quad)
+        else:
+            u_quad = -c_quad / max(1e-6, b_quad)
+
+        T_val = min(float(max_search_duration_s), np.sqrt(max(0.0, u_quad)))
+        return round(float(T_val), 2)
 
     def estimate(
         self,
