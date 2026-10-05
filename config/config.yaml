@@ -1,5 +1,5 @@
-# VYRA Experiment and System Configuration Skeleton
-# Note: Initial configuration defaults subject to empirical validation during Phase 1-10.
+# VYRA Experiment and System Configuration
+# Note: Initial configuration defaults subject to empirical validation.
 
 dataset:
   name: "IO-VNBD"
@@ -7,8 +7,25 @@ dataset:
   processed_dir: "data/processed"
   splits_dir: "data/splits"
   metadata_dir: "data/metadata"
-  sampling_rate_hz: null  # To be determined from dataset inspection
-  coordinate_frame: "ENU"
+  sampling_rate_hz: 10.0  # Nominal rate from IO-VNBD documentation
+  target_coordinate_frame: "ENU"  # Local East-North-Up tangent plane
+  file_pattern: "*.csv"
+
+preprocessing:
+  history_window_steps: 50       # 5.0 seconds at 10 Hz
+  stride_steps: 1                # Causal step increment
+  remove_exact_duplicates: true
+  enforce_monotonic_timestamps: true
+  filter_impossible_geodetic: true
+  min_satellites_valid: 0        # Keep degraded GNSS for scientific observation
+  preserve_degradation: true     # Never drop records merely because GNSS is degraded
+
+splits:
+  strategy: "trajectory"         # Trajectory-level splitting to prevent leakage
+  train_ratio: 0.60
+  val_ratio: 0.20
+  test_ratio: 0.20
+  random_seed: 42
 
 prediction:
   horizons_seconds:
@@ -19,10 +36,11 @@ prediction:
   features:
     - "hdop"
     - "vdop"
-    - "satellite_count"
-    - "c_n0"
+    - "satellites_available"
     - "speed_mps"
-  model_type: "logistic_regression"  # Default baseline candidate
+    - "acc_norm"
+    - "gyro_norm"
+  model_type: "logistic_regression"
 
 forecasting:
   candidate_actions:

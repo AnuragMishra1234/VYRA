@@ -1,108 +1,98 @@
-# VYRA: Experiment Protocol & Methodology
+# VYRA: Reproducible Experiment Protocol
 
-## 1. Experiment Specification Template
+## 1. Protocol Overview
 
-Every major experiment conducted in VYRA must adhere to this structured protocol template:
-
-```yaml
-Experiment_ID: EXP-XXX
-Hypothesis: >
-  Explicit statement predicting how the independent variable impacts the dependent variable.
-Independent_Variable: Navigation policy / Forecast horizon / Outage duration / Threshold
-Dependent_Variables:
-  - Absolute Trajectory Error (ATE)
-  - Root Mean Square Error (RMSE)
-  - Time above error threshold (s)
-  - Total handover count
-  - Warning lead time (s)
-Baselines:
-  - GNSS-only
-  - Pure DR
-  - Reactive Threshold Switching
-  - Fixed Hybrid (EKF)
-Dataset_Splits:
-  Train: Trajectory IDs [TRAIN_IDS]
-  Validation: Trajectory IDs [VAL_IDS]
-  Test: Trajectory IDs [TEST_IDS] (Unseen)
-Parameters:
-  Error_Threshold: 10.0 m (also sensitivity-tested at 5.0m, 20.0m)
-  Random_Seed: 42
-  Forecast_Horizon: 5.0 s
-Interpretation_Criteria:
-  Positive_Result: Statistically significant (p < 0.05) reduction in threshold violations without excessive chattering.
-  Negative_Result: No significant difference over reactive switching or excessive false handovers.
-```
+This document specifies the experimental protocol governing all data handling, model training, evaluation runs, and baseline benchmarking in VYRA. To uphold scientific integrity, parameters awaiting dataset inspection are explicitly designated as `[TODO — VERIFY FROM DATASET]`.
 
 ---
 
-## 2. Controlled Degradation & Outage Protocol
+## 2. Experimental Specification (Sections A — R)
 
-To ensure reproducible benchmarking, real trajectory recordings are perturbed via software-based controlled degradation scenarios:
+### A. Dataset
+- **Target Dataset:** IO-VNBD (Inertial Odometry and Vehicle Navigation Benchmark Dataset).
+- **Source / Authors:** Uche Onyekpeu et al., Coventry University (published in MDPI Data / Sensors).
+- **Format:** CSV files per driving trip / sequence.
+- **Repository:** `https://github.com/onyekpeu/IO-VNBD`.
+- **Status:** `[TODO — VERIFY FROM DATASET: Confirm specific vehicle (V-) vs. smartphone (S-) sub-splits upon download]`.
 
-### Outage Duration Matrix
-Controlled zero-GNSS outage intervals:
-- **Brief:** $2\text{s}$
-- **Short:** $5\text{s}$
-- **Medium:** $10\text{s}$
-- **Extended:** $20\text{s}$
-- **Severe:** $30\text{s}$
+### B. Trajectory Definition
+- A continuous, uninterrupted vehicular drive sequence identified by a unique trajectory ID (e.g., `trajectory_id` or trip CSV filename).
+- Trajectories must not be concatenated across trips without timestamp gap handling.
 
-### Degradation Profile Phases
-1. **Normal Operation:** Pristine GNSS signals from recording.
-2. **Mild Degradation:** Increased pseudorange noise, satellite count reduced by $25\%$.
-3. **Moderate Degradation:** Satellite count reduced to 4–5, HDOP elevated, multipath noise added.
-4. **Severe Degradation:** HDOP $> 6$, high position jitter, satellite count reduced to $<4$.
-5. **Complete Outage:** Total loss of GNSS position updates ($0$ satellites received).
-6. **Recovery:** Progressive signal reacquisition (outage $\to$ weak $\to$ moderate $\to$ normal).
+### C. Sampling Rate
+- **Target Nominal Rate:** 10 Hz (0.1 s per epoch).
+- **Status:** `[TODO — VERIFY FROM DATASET: Compute empirical sampling delta mean and jitter from raw timestamps]`.
 
-> [!IMPORTANT]
-> **Experimental Rule:** All software perturbations are explicitly documented as **controlled software-simulated outages**. They must never be described as real-world RF jamming or hardware spoofing.
+### D. Sensors Used
+- **GNSS Receiver:** Latitude, Longitude, Altitude, Speed, Heading, Satellites Available, DOP parameters (HDOP, VDOP).
+- **IMU:** 3-axis Accelerometer (longitudinal/lateral/vertical acceleration), 3-axis Gyroscope (yaw rate / angular rates).
+- **Odometry:** Wheel speed / CAN bus speed (if available in subset).
+- **Status:** `[TODO — VERIFY FROM DATASET: Check column names and unit scaling across V- and S- series]`.
 
----
+### E. Coordinate Systems
+- **Raw Geographic:** WGS84 Ellipsoidal (Latitude [deg], Longitude [deg], Altitude [m]).
+- **Global Cartesian:** Earth-Centered Earth-Fixed (ECEF) [m].
+- **Local Navigation Frame:** East-North-Up (ENU) tangent frame [m], anchored to the initial valid GNSS position of each trajectory.
+- **Body Frame:** Vehicle body frame (X-Right, Y-Forward, Z-Up or dataset-specific convention).
 
-## 3. Evaluated Baselines
+### F. Ground-Truth Definition
+- Benchmark reference trajectory provided with the dataset (e.g., dual-antenna RTK GNSS / high-grade tactical INS).
+- **Status:** `[TODO — VERIFY FROM DATASET: Verify ground-truth accuracy specification and reference sensor from IO-VNBD documentation]`.
 
-Every test run evaluates five methods under identical scenario timing and perturbation injections:
-1. **B1: GNSS-only:** Accepts raw GNSS position whenever fix exists; holds last position during outages.
-2. **B2: Pure DR:** Propagates motion using strapdown inertial mechanization without any GNSS updates.
-3. **B3: Reactive Switching:** Instantaneous threshold policy (switches to DR when HDOP $> \tau_{\text{HDOP}}$ or satellites $< 4$; switches back immediately upon recovery).
-4. **B4: Fixed Hybrid:** Standard loosely-coupled EKF continuously fusing GNSS and IMU without adaptive mode rejection.
-5. **VYRA:** Forecast-driven adaptive policy utilizing action-conditioned error prediction, DR survivability, and switching penalties.
+### G. Training Split
+- Distinct physical drive trajectories partitioned exclusively for model training.
+- No temporal overlap with validation or test partitions.
+- Minimum 60% of total available trajectories.
 
----
+### H. Validation Split
+- Separate, independent trajectories reserved for hyperparameter tuning, probability calibration, and threshold optimization.
+- Minimum 20% of total available trajectories.
 
-## 4. Evaluation Metrics Formulation
+### I. Test Split
+- Completely held-out, unseen trajectories reserved strictly for final evaluation.
+- Never exposed to feature normalization fitting, model training, or threshold tuning.
+- Minimum 20% of total available trajectories.
 
-### Localization Metrics
-- **Absolute Trajectory Error (ATE):**
-  $$\text{ATE} = \sqrt{\frac{1}{N} \sum_{k=1}^N \|\mathbf{p}_k^{\text{est}} - \mathbf{p}_k^{\text{gt}}\|^2}$$
-- **Relative Trajectory Error (RTE):** Error over fixed travel intervals $\Delta t$.
-- **Maximum Error:** $\max_k \|\mathbf{p}_k^{\text{est}} - \mathbf{p}_k^{\text{gt}}\|$.
-- **Final Drift:** Displacement error at the end of the outage window.
-- **Error-Bound Violation Ratio:** $\frac{1}{N} \sum_{k=1}^N \mathbb{I}(\|\mathbf{p}_k^{\text{est}} - \mathbf{p}_k^{\text{gt}}\| > E_{\text{threshold}})$.
+### J. Window Size (History)
+- **Causal Observation Window:** $L_{\text{history}} = 50$ epochs ($5.0\text{ s}$ at 10 Hz nominal rate).
+- Captures short-term motion trends, acceleration jitter, and GNSS quality derivatives.
 
-### Policy and Switching Metrics
-- **Total Handover Count:** $\sum_{k=2}^N \mathbb{I}(\text{Mode}_k \ne \text{Mode}_{k-1})$.
-- **False Handover Rate:** Switches away from GNSS when GNSS error was actually $< E_{\text{threshold}}$.
-- **Missed Handover Rate:** Remaining in GNSS when GNSS error exceeded $E_{\text{threshold}}$.
-- **Warning Lead Time ($t_{\text{lead}}$):** Elapsed time between early degradation alarm and actual outage onset.
+### K. Forecast Horizons
+- Evaluated forward horizons: $H \in \{1.0\text{s}, 3.0\text{s}, 5.0\text{s}, 10.0\text{s}\}$.
+- Corresponding sample steps at 10 Hz: $K_H \in \{10, 30, 50, 100\}$ steps.
 
----
+### L. Feature Construction Rules
+- Strictly causal: A feature vector at time step $k$ ($t_k$) must be constructed using data **only** from the window $[t_k - L_{\text{history}}, t_k]$.
+- Measurements from $t > t_k$ are strictly forbidden.
 
-## 5. Ablation Studies Matrix
+### M. Label Construction Rules
+- Supervised targets represent the consequence observed over the future interval $[t_k + 1, t_k + H]$.
+- Formulations:
+  1. Position error at horizon: $\|\mathbf{p}_{\text{est}}(t_k + H) - \mathbf{p}_{\text{gt}}(t_k + H)\|$.
+  2. Maximum error in horizon: $\max_{\tau \in [t_k, t_k + H]} \|\mathbf{p}_{\text{est}}(\tau) - \mathbf{p}_{\text{gt}}(\tau)\|$.
+  3. Binary error-bound violation: $\mathbb{I}(\|\mathbf{p}_{\text{est}}(t_k + H) - \mathbf{p}_{\text{gt}}(t_k + H)\| > E_{\text{threshold}})$.
 
-To isolate the source of any observed improvements, the system undergoes systematic ablations:
-- **Ablation A:** Remove GNSS degradation prediction (policy acts without advance degradation warning).
-- **Ablation B:** Remove DR survivability estimation (policy assumes DR has unbounded validity).
-- **Ablation C:** Remove uncertainty covariance handling.
-- **Ablation D:** Remove action-conditioned counterfactual forecasting (policy relies only on current state indicators).
-- **Ablation E:** Current GNSS quality only (reverts to reactive indicator policy).
-- **Ablation F:** Remove switching penalties and dwell time (evaluate policy chattering).
+### N. Leakage Prevention Rules
+1. Split assignment occurs strictly at the trajectory ID level, never by shuffling individual time rows.
+2. Normalization scalers (mean, variance, min-max) are fitted **only** on the training split.
+3. Sliding windows must terminate at trajectory boundaries and never bridge separate trajectories.
+4. Future ground truth and future sensor inputs are segregated from historical feature vectors.
 
----
+### O. Random Seeds
+- Global deterministic seed: `42` across all random number generators (NumPy, scikit-learn, XGBoost).
 
-## 6. Reproducibility & Integrity Standards
+### P. Evaluation Metrics
+- **Localization:** Absolute Trajectory Error (ATE), Relative Trajectory Error (RTE), RMSE (ENU), Maximum Error, Terminal Drift.
+- **Reliability:** Time above error threshold ($E_{\text{threshold}} \in \{5\text{m}, 10\text{m}, 20\text{m}\}$), violation percentage.
+- **Policy Stability:** Total handover count, false handover rate, missed handover rate, mode chattering frequency.
+- **Forecasting Quality:** Forecast RMSE, Mean Absolute Error (MAE), Expected Calibration Error (ECE), Spearman rank correlation.
 
-1. **Strict Temporal Splits:** Trajectories are split by physical drive IDs, never shuffled across time steps.
-2. **Frozen Configurations:** All policy thresholds and hyperparameters are set via YAML configuration files and frozen prior to test set evaluation.
-3. **Multi-Trajectory Statistics:** Experiments report Mean, Median, Standard Deviation, and 95% Confidence Intervals across multiple distinct test trajectories. Single favorable trajectories are never reported as standalone proof.
+### Q. Baseline Definitions
+1. **GNSS-only:** Accepts GNSS position fixes directly; holds last fix during outages.
+2. **Pure DR:** Propagates strapdown inertial navigation continuously without GNSS updates.
+3. **Reactive Switching:** Rule-based switching to DR when HDOP $> \tau_{\text{HDOP}}$ or satellite count $< 4$; returns to GNSS upon reacquisition.
+4. **Fixed Hybrid:** Fixed-gain Extended Kalman Filter continuously fusing GNSS and IMU without adaptive outlier rejection.
+5. **VYRA Adaptive Policy:** Forecast-driven policy evaluating predicted future risks of candidate actions subject to dwell time and switching penalties.
+
+### R. Reproducibility Requirements
+- Every experimental execution logs: configuration hash, git commit hash, trajectory IDs per split, software versions, and generated metrics in structured JSON format under `results/`.

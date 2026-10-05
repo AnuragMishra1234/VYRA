@@ -3,7 +3,7 @@
 > **Forecast-Driven Adaptive Navigation-Mode Selection for Resilient GNSS/Dead-Reckoning Localization**
 
 [![Python Version](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/)
-[![Status](https://img.shields.io/badge/status-Phase%200%3A%20Scaffolding-yellow.svg)](#)
+[![Status](https://img.shields.io/badge/status-Phase%201%3A%20Research%20Foundation%20%26%20Data%20Pipeline-blue.svg)](#)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](#)
 
 ---
@@ -26,11 +26,30 @@ An adaptive policy then selects the navigation mode expected to provide the opti
 
 ## 2. Core Research Question
 
-> **"Can short-horizon, action-conditioned/counterfactual localization-error forecasting predict the consequences of choosing GNSS, HYBRID fusion, or dead reckoning, and can an adaptive policy use those forecasts to reduce future error-bound violations and unnecessary navigation-mode switching during GNSS degradation and outages?"**
+> **"Can short-horizon, action-conditioned localization-error forecasting predict the consequences of choosing GNSS, HYBRID fusion, or dead reckoning, enabling an adaptive navigation policy to minimize future localization-error-bound violations during GNSS degradation and outages?"**
 
 ---
 
-## 3. Key Navigation Modes
+## 3. Phase 1 Overview: Research Foundation & Dataset Pipeline
+
+Phase 1 establishes the foundational data and experimental infrastructure upon which all later estimation and predictive phases rely:
+- **Research Formulation:** Complete specification of hypotheses ($H_1, H_{1a-d}$), independent/dependent variables, and epistemic classifications ([RESEARCH_QUESTION.md](RESEARCH_QUESTION.md)).
+- **Literature & Novelty Boundaries:** Explicit documentation of 9 navigation domains and disproval protocol without fabricated citations ([RESEARCH_GAP.md](RESEARCH_GAP.md)).
+- **Reproducible Protocol:** Standardized experimental methodology across horizons ($1\text{s}, 3\text{s}, 5\text{s}, 10\text{s}$) and outages ($2\text{s} - 30\text{s}$) ([EXPERIMENT_PROTOCOL.md](EXPERIMENT_PROTOCOL.md)).
+- **Target Dataset Specification:** Comprehensive documentation of the primary IO-VNBD benchmark, acquisition instructions, and schema definitions ([DATASET.md](DATASET.md), [data/README.md](data/README.md)).
+- **Causal, Leak-Free Preprocessing Pipeline:**
+  - `dataset_loader.py`: Validates schemas, parses timestamps, and loads sequences without lookahead.
+  - `dataset_inspector.py`: Audits sampling stability, gaps, and sensor coverage to produce machine-readable reports.
+  - `cleaning.py`: Conservative data sanitization preserving scientifically meaningful degradation.
+  - `synchronization.py`: Strict causal interpolation and temporal alignment between high-rate IMU and GNSS.
+  - `coordinate_utils.py`: Deterministic WGS84 $\to$ ECEF $\to$ ENU tangent coordinate transformations.
+  - `normalization.py`: Strict train-split-only feature scaling.
+  - `windowing.py`: Causal history window extraction $[t - L, t]$ paired with strictly isolated future targets $[t + 1, t + H]$.
+  - `quality_checks.py`: Automated integrity assertion suite preventing data leakage and boundary bridging.
+
+---
+
+## 4. Key Navigation Modes
 
 | Mode | Source Sensors | Description | Typical Failure Mode |
 | :--- | :--- | :--- | :--- |
@@ -40,10 +59,10 @@ An adaptive policy then selects the navigation mode expected to provide the opti
 
 ---
 
-## 4. Evaluated Baselines
+## 5. Evaluated Baselines
 
 Every experiment compares the proposed VYRA policy against four standard baselines under identical degradation scenarios:
-1. **GNSS-only:** Always rely on GNSS when signals are received.
+1. **GNSS-only:** Always rely on GNSS when available.
 2. **Pure DR:** Sole reliance on inertial dead reckoning.
 3. **Reactive Switching:** Conventional threshold-based switching (e.g., switch to DR when GNSS quality drops below a threshold).
 4. **Fixed Hybrid:** Fixed-parameter GNSS/INS fusion without adaptive switching.
@@ -51,7 +70,7 @@ Every experiment compares the proposed VYRA policy against four standard baselin
 
 ---
 
-## 5. Repository Structure
+## 6. Repository Structure
 
 ```text
 VYRA/
@@ -93,7 +112,7 @@ VYRA/
 
 ---
 
-## 6. Quickstart
+## 7. Quickstart
 
 ### Prerequisites
 - Python 3.11+
@@ -113,7 +132,7 @@ pytest tests/
 
 ---
 
-## 7. Research Principles
+## 8. Research Principles
 
 - **No Data Leakage:** Strict trajectory-level splitting; models at time $t$ never access information from $t+1$ onwards.
 - **Controlled Simulation:** Outage and degradation scenarios are controlled software simulations and must never be represented as live RF jamming.

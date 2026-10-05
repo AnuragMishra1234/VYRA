@@ -1,61 +1,71 @@
-# VYRA: Dataset Requirements & Ingestion Specification
+# VYRA: Dataset Documentation & Acquisition Specification
 
-## 1. Primary Dataset Target: IO-VNBD
+## 1. Dataset Identification
 
-The primary benchmark dataset investigated in VYRA is **IO-VNBD** (Inertial Odometry and Vehicle Navigation Benchmark Dataset), with support for equivalent public vehicular/robotic benchmarks providing synchronized GNSS, IMU, and ground truth references.
-
-> [!IMPORTANT]
-> **Schema Discovery Rule:** Never assume hardcoded column names or sampling frequencies. The preprocessing pipeline must inspect the raw schema dynamically upon ingestion.
-
----
-
-## 2. Sensor Modalities & Target Fields
-
-### 2.1. GNSS Data Stream
-Anticipated fields subject to dataset verification:
-- `timestamp`: UTC or Unix epoch (seconds / nanoseconds)
-- `latitude`, `longitude`, `altitude`: WGS84 ellipsoidal coordinates
-- `speed_mps`: Estimated ground velocity ($m/s$)
-- `heading_deg`: Course over ground (degrees)
-- `satellites_visible` / `satellites_used`: Visible and used satellite counts
-- `hdop`, `vdop`, `pdop`: Horizontal, vertical, and position dilution of precision
-- `horizontal_accuracy`, `vertical_accuracy`: Reported $1\sigma$ or $2\sigma$ error bounds ($m$)
-- `c_n0` / `snr`: Average or per-satellite Carrier-to-Noise density ratio ($dB\text{-}Hz$)
-- `fix_type`: Fix status (e.g., 0=Invalid, 1=Autonomous GNSS, 2=DGPS, 4=RTK Fixed, 5=RTK Float)
-
-### 2.2. Inertial Measurement Unit (IMU)
-Anticipated fields:
-- `timestamp`: High-rate IMU epoch
-- `acc_x`, `acc_y`, `acc_z`: Specific force in body frame ($m/s^2$)
-- `gyro_x`, `gyro_y`, `gyro_z`: Angular rate in body frame ($rad/s$ or $deg/s$)
-- `mag_x`, `mag_y`, `mag_z`: Magnetic flux density (if available, $\mu T$)
-- `orientation_quat` / `rpy`: Onboard orientation estimates (if provided)
-
-### 2.3. Ground Truth Reference
-- High-precision reference trajectory (e.g., dual-antenna RTK GNSS/high-grade tactical INS or SLAM reference).
-- Provides centimeter/decimeter-level 3D position and orientation for ground-truth error evaluation.
+- **Dataset Name:** IO-VNBD (Inertial Odometry and Vehicle Navigation Benchmark Dataset)
+- **Primary Source / Authors:** Uche Onyekpeu et al., Coventry University
+- **Publication Venue:** MDPI Data / Sensors
+- **Official Repository:** `https://github.com/onyekpeu/IO-VNBD`
+- **License:** Open Access / Academic Research Use (as specified in repository)
+- **Geographic Coverage:** United Kingdom, Nigeria, France (diverse urban, suburban, motorway, and country road conditions)
+- **Vehicle Platform:** Ford Fiesta Titanium instrumented research vehicle + Android smartphone sensor suite
 
 ---
 
-## 3. Directory Layout
+## 2. Sensor Modalities & Suitability Analysis
 
-The `data/` directory is partitioned into four distinct stages:
+| Modality | Description & Target Fields | Suitability for VYRA |
+| :--- | :--- | :--- |
+| **GNSS Receiver** | GPS Satellites available, Timestamp, Latitude, Longitude, Height, Velocity, Heading, Sample period | **Directly suitable:** Provides standard receiver quality signals and absolute position fixes for baseline navigation and degradation analysis. |
+| **Inertial Sensors (IMU)**| Longitudinal and lateral accelerations, yaw rate / angular velocities, orientation | **Directly suitable:** Enables standalone strapdown dead-reckoning mechanization and EKF hybrid fusion. |
+| **Vehicle Odometry / CAN**| Wheel speed, steering angle, vehicle ECU speed | **Beneficial auxiliary input:** Can constrain inertial drift and provide non-holonomic velocity updates. |
+| **Smartphone Suite** | 3-axis accelerometer, gyroscope, magnetometer, orientation (Yaw, Pitch, Roll) | **Valuable secondary testbed:** Evaluates generalizability to low-cost consumer sensor hardware. |
+| **Ground Truth Reference**| Dual-antenna RTK / Tactical INS reference trajectory | **Mandatory requirement:** Required for computing Absolute Trajectory Error (ATE) and evaluating future error predictions. |
+
+---
+
+## 3. Known Limitations & Verification Requirements
+
+1. **Sampling Frequency:** Reported nominal rate is 10 Hz across vehicle and phone streams. `[TODO — VERIFY FROM DATASET: Check for timestamp jitter or missing epochs]`.
+2. **Ground Truth Precision:** Need to verify the specific sensor used as ground truth across each drive sequence (tactical INS vs RTK fixed).
+3. **GNSS Metrics Granularity:** Need to confirm whether raw Carrier-to-Noise Ratio ($C/N_0$) or raw pseudoranges are included or whether only satellite counts and DOP are logged.
+4. **Coordinate Frames:** Sensor mounting orientation relative to the vehicle chassis frame must be verified from dataset documentation.
+
+---
+
+## 4. Dataset Acquisition Instructions
+
+To obtain the authentic IO-VNBD benchmark dataset for VYRA:
+
+1. Clone or download the dataset repository from GitHub:
+   ```bash
+   git clone https://github.com/onyekpeu/IO-VNBD.git
+   ```
+2. Locate the CSV trajectory sequences (e.g., `V-` series for vehicle data and `S-` series for smartphone recordings).
+3. Copy or link the raw CSV trajectory files into the `data/raw/` directory:
+   ```text
+   data/raw/
+   ├── trajectory_01.csv
+   ├── trajectory_02.csv
+   └── ...
+   ```
+4. Execute the dataset inspection pipeline:
+   ```bash
+   python -m preprocessing.dataset_inspector
+   ```
+
+---
+
+## 5. Directory Layout & Storage Rules
 
 ```text
 data/
-├── raw/         # Untracked in git. Pristine downloaded dataset archives.
-├── processed/   # Synchronized, cleaned, and coordinate-transformed parquet/h5 files.
-├── splits/      # Partition definitions: train_trajectories.json, val_trajectories.json, test_trajectories.json.
-└── metadata/    # Dataset statistics, schema reports, and missing-value logs.
+├── raw/         # RAW BENCHMARK FILES (untracked by git, never committed)
+├── processed/   # Cleaned, synchronized, coordinate-transformed Parquet files
+├── splits/      # Trajectory partition metadata (train.json, val.json, test.json)
+└── metadata/    # Generated schema reports and missing-value statistics
 ```
 
----
-
-## 4. Anti-Data-Leakage Splitting Protocol
-
-1. **Partition by Entire Trajectory:** Datasets must be split at the trajectory / trip level. For example:
-   - *Training Set:* Trajectories `TR_01` through `TR_06`
-   - *Validation Set:* Trajectories `TR_07` and `TR_08`
-   - *Unseen Test Set:* Trajectories `TR_09` and `TR_10`
-2. **Prohibition of Shuffling:** Rolling time-series windows or overlapping slices from the same physical drive must **never** be placed across both training and test partitions.
-3. **Strict Normalization Scope:** All feature scalers (e.g., StandardScaler, MinMax) must be fitted **only** on the training split, then applied to validation and test splits without leakage.
+> [!WARNING]
+> **Strict Pipeline Failure Rule:**  
+> If `data/raw/` is empty or lacks supported trajectory files, the ingestion pipeline raises an explicit `DatasetNotFoundError` with clear setup instructions. The system will never fabricate synthetic data or proceed with mock values.
