@@ -1,0 +1,26 @@
+# VYRA Core Research Dependencies
+# Python >= 3.11
+
+# Scientific Computing & Data Handling
+numpy>=1.26.0
+pandas>=2.2.0
+scipy>=1.12.0
+pyyaml>=6.0.1
+
+# Machine Learning & Baselines
+scikit-learn>=1.4.0
+xgboost>=2.0.0
+
+# Backend & Serving Architecture
+fastapi>=0.110.0
+uvicorn>=0.28.0
+pydantic>=2.6.0
+websockets>=12.0
+
+# Visualization & Scientific Plotting
+matplotlib>=3.8.0
+plotly>=5.20.0
+
+# Testing & Quality Assurance
+pytest>=8.0.0
+pytest-cov>=4.1.0

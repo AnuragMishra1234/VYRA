@@ -1,0 +1,1261 @@
+VYRA — COMPLETE PROJECT CONTEXT Forecast-Driven Adaptive Navigation-Mode
+Selection for Resilient GNSS/Dead-Reckoning Localization
+
+============================================================ 0. PURPOSE
+OF THIS FILE
+============================================================
+
+This file is the authoritative implementation and research context for
+VYRA.
+
+Any coding agent, including Antigravity, should read this file
+completely before changing the project.
+
+VYRA is a research-oriented navigation system. It is not a chatbot, RAG
+system, generic AI agent, or dashboard-only project.
+
+The core objective is to investigate whether forecasting the future
+localization consequences of different navigation choices can improve
+adaptive navigation during GNSS degradation and outages.
+
+The system combines: - GNSS positioning - IMU sensing - inertial dead
+reckoning - GNSS/IMU hybrid fusion - GNSS degradation prediction -
+short-horizon localization-error forecasting - uncertainty estimation -
+adaptive navigation-mode selection - controlled GNSS degradation/outage
+simulation - rigorous evaluation against baselines
+
+IMPORTANT: Do not fabricate results, dataset fields, literature claims,
+accuracy numbers, or “novel” claims. If something is unknown, explicitly
+mark it as needing verification.
+
+============================================================ 1. PROJECT
+IDENTITY ============================================================
+
+Project short name: VYRA
+
+Current research/project title: Forecast-Driven Adaptive Navigation-Mode
+Selection for Resilient GNSS/Dead-Reckoning Localization
+
+Core domain: GNSS resilience + inertial navigation + machine learning +
+sensor fusion + adaptive decision-making.
+
+Target navigation modes: 1. GNSS 2. HYBRID — GNSS +
+inertial/dead-reckoning fusion 3. DR — inertial dead reckoning
+
+The framework is NOT fundamentally limited to cars. Potential
+application domains include: - vehicles - UAVs/drones - mobile robots -
+industrial autonomous systems - emergency-response systems -
+marine/other GNSS-assisted platforms - smartphones or wearable
+navigation platforms
+
+The initial prototype may use public GNSS/IMU data and software
+simulation because that is the most practical and reproducible
+implementation path.
+
+Do not claim that results on one dataset automatically prove performance
+on every platform.
+
+============================================================ 2. SIMPLE
+EXPLANATION ============================================================
+
+Imagine a system that is currently navigating using GNSS.
+
+GNSS can become unreliable because of: - buildings - tunnels - urban
+canyons - multipath - poor satellite geometry - signal obstruction -
+interference - temporary degradation - complete outage
+
+Dead reckoning can continue estimating movement using IMU sensors, but
+its error grows over time because of sensor bias, noise, orientation
+errors and integration drift.
+
+Hybrid fusion can combine GNSS and inertial information, but it is not
+automatically best in every condition.
+
+The important question is therefore not simply:
+
+“Is GNSS bad?”
+
+The more useful question is:
+
+“If I choose GNSS, HYBRID, or DR right now, what localization error is
+likely to happen over the next few seconds?”
+
+VYRA investigates this idea.
+
+At each decision point, VYRA can estimate the short-term future
+consequences of the candidate navigation modes.
+
+Conceptually:
+
+Current state | +–> What happens if I keep GNSS? | +–> What happens if I
+use HYBRID? | +–> What happens if I use DR? | v Forecast future
+localization risk/error | v Select the mode expected to produce the
+safest/lowest future error
+
+This is the key conceptual shift.
+
+Traditional reactive switching can behave like:
+
+GNSS good -> use GNSS GNSS bad -> switch to DR
+
+VYRA investigates a forecast-driven decision:
+
+Current conditions -> predict future GNSS reliability -> estimate DR
+uncertainty/survivability -> forecast future localization consequences
+of candidate modes -> select the mode that best satisfies the error/risk
+objective.
+
+============================================================ 3. CORE
+RESEARCH QUESTION
+============================================================
+
+Primary research question:
+
+Can short-horizon, action-conditioned/counterfactual localization-error
+forecasting predict the consequences of choosing GNSS, HYBRID fusion, or
+dead reckoning, and can an adaptive policy use those forecasts to reduce
+future error-bound violations and unnecessary navigation-mode switching
+during GNSS degradation and outages?
+
+An earlier formulation of the project focused on jointly considering
+predicted GNSS reliability and DR survivability.
+
+The current VYRA direction extends that idea by explicitly asking:
+
+“What would likely happen if each navigation mode were selected now?”
+
+This formulation must be treated as a research hypothesis, not as an
+already-proven novel contribution.
+
+Before claiming novelty, perform a serious literature review.
+
+============================================================ 4.
+IMPORTANT NOVELTY RULE
+============================================================
+
+Do NOT claim: - “first ever” - “unique worldwide” - “no existing system
+does this” - “novel because it uses GNSS + IMU” - “novel because it
+switches to DR” - “novel because it uses machine learning” - “novel
+because it uses EKF”
+
+These are established areas.
+
+Potential research value is in the exact formulation, forecasting
+target, decision policy, evaluation methodology, and empirical evidence.
+
+The literature review must try to DISPROVE the contribution.
+
+Search current work from approximately 2023-2026, plus foundational work
+where required.
+
+Prioritize: - IEEE - ScienceDirect - Springer - ACM - MDPI where
+appropriate - arXiv where appropriate - Google Scholar-indexed papers -
+official dataset papers - GitHub/open-source implementations -
+student/hackathon projects where relevant to plagiarism/originality risk
+
+If an existing paper already implements the same idea, report it
+honestly.
+
+============================================================ 5. WHAT IS
+ACTUALLY DIFFERENT IN VYRA
+============================================================
+
+The central investigated idea is:
+
+Instead of making navigation decisions only from current GNSS quality or
+a fixed reactive rule, estimate the short-horizon future localization
+consequences of candidate navigation actions.
+
+Candidate actions: A1 = GNSS A2 = HYBRID A3 = DR
+
+For a horizon H seconds, estimate something conceptually like:
+
+FutureRisk(GNSS | current state, H) FutureRisk(HYBRID | current state,
+H) FutureRisk(DR | current state, H)
+
+Then choose the action according to a clearly defined policy objective.
+
+Possible objective: minimize predicted future error or probability of
+violating an acceptable error bound, while penalizing unnecessary
+handovers and unstable switching.
+
+The exact mathematical formulation must be designed and experimentally
+validated.
+
+Do not simply create three arbitrary numbers and call them predictions.
+
+============================================================ 6.
+COUNTERFACTUAL / ACTION-CONDITIONED MEANING
+============================================================
+
+“Counterfactual” means asking:
+
+“What would likely happen if I had chosen a different action?”
+
+Example only — NOT a measured result:
+
+At time t: GNSS is degrading.
+
+Predicted error over the next 5 seconds: - GNSS: 16 m - HYBRID: 7 m -
+DR: 10 m
+
+If the acceptable bound is 10 m, HYBRID may be the preferred action.
+
+These numbers are illustrative only.
+
+The implementation must generate real predictions from the actual
+model/data.
+
+Possible forecasting horizons: - 1 second - 3 seconds - 5 seconds - 10
+seconds
+
+These are experimental defaults, not guaranteed optimal values.
+
+============================================================ 7. WHY THIS
+MATTERS ============================================================
+
+A reactive policy can switch too early or too late.
+
+Switch too early: GNSS is only temporarily degraded. The system switches
+to DR. DR starts accumulating error. GNSS would have recovered soon.
+
+Switch too late: GNSS becomes severely corrupted. The system continues
+trusting it. The estimated position can become inaccurate.
+
+The system therefore faces a tradeoff:
+
+Early switching -> more DR exposure -> possible drift
+
+Late switching -> more corrupted GNSS exposure -> possible position
+error/jumps
+
+Forecast-driven selection -> estimate future consequences -> choose the
+lower-risk option
+
+VYRA should measure whether this forecast-driven idea actually helps.
+
+============================================================ 8. SYSTEM
+INPUTS ============================================================
+
+Primary inputs:
+
+GNSS: Potential fields depending on the selected dataset: - latitude -
+longitude - altitude - speed - heading - satellite count - HDOP - VDOP -
+reported horizontal/vertical accuracy - fix status - C/N0 if available -
+timestamp
+
+IMU: Potential fields: - accelerometer ax, ay, az - gyroscope gx, gy,
+gz - magnetometer if available - orientation/attitude if available
+
+GROUND TRUTH: A reference trajectory is required for evaluation if
+available.
+
+IMPORTANT: Never assume a field exists. First inspect the dataset
+schema.
+
+============================================================ 9. DATASET
+============================================================
+
+Primary dataset to investigate: IO-VNBD.
+
+Do not assume the exact schema.
+
+Required workflow:
+
+Dataset discovery -> schema inspection -> sensor identification ->
+timestamp analysis -> synchronization -> quality checks -> preprocessing
+-> trajectory-level/temporal splitting
+
+If the dataset does not contain the required information, document the
+limitation and evaluate another appropriate public dataset if necessary.
+
+Raw datasets should not be committed to GitHub.
+
+Suggested data structure:
+
+data/ raw/ processed/ splits/ metadata/
+
+============================================================ 10. DATA
+LEAKAGE RULES
+============================================================
+
+This is a time-series research project.
+
+Do NOT randomly shuffle overlapping time windows across train/test.
+
+Preferred structure:
+
+Training trajectories -> Validation trajectories -> Unseen test
+trajectories
+
+The goal is to answer:
+
+“Can the method generalize to an unseen trajectory?”
+
+not:
+
+“Can the model memorize nearby windows from the same drive?”
+
+The forecasting model must only use information available up to the
+current timestamp.
+
+No future leakage.
+
+Ground truth after the current timestamp must never be used as an input
+feature.
+
+============================================================ 11. GNSS
+QUALITY ENGINE
+============================================================
+
+Build a GNSS quality representation using available measurable
+indicators.
+
+Potential features: - satellite count - HDOP - VDOP - reported
+accuracy - C/N0 - fix status - short-term position stability - speed
+stability - position jumps - temporal trend - quality derivative
+
+A normalized quality score may be useful, but do not arbitrarily claim a
+formula is scientifically optimal.
+
+The quality engine should expose interpretable signals to the prediction
+and policy layers.
+
+============================================================ 12. GNSS
+DEGRADATION PREDICTION
+============================================================
+
+The first predictive task is to estimate whether GNSS will become
+unreliable in a future horizon.
+
+Example:
+
+P(GNSS degradation within next 5 seconds)
+
+Potential horizons: 1s, 3s, 5s, 10s.
+
+The model must use only current and historical information.
+
+Start with strong simple baselines: 1. Persistence/rule baseline 2.
+Logistic Regression 3. Random Forest 4. XGBoost
+
+Only investigate deep models such as: - LSTM - GRU - TCN - Transformer
+
+if the baseline experiments justify them.
+
+A complex model is not automatically a better research contribution.
+
+Evaluate: - accuracy - precision - recall - F1 - ROC-AUC - PR-AUC -
+confusion matrix - calibration - false alarm rate - missed degradation
+rate - warning lead time
+
+Warning lead time is particularly important.
+
+============================================================ 13. DEAD
+RECKONING ============================================================
+
+Dead reckoning estimates motion from inertial measurements.
+
+Basic pipeline:
+
+IMU -> preprocessing -> bias/noise handling -> orientation/coordinate
+transformation -> motion propagation -> position/velocity estimate ->
+uncertainty estimate
+
+Potential methods: - strapdown inertial propagation - velocity/position
+integration - orientation estimation - EKF - error-state EKF
+
+The implementation must document mathematical assumptions.
+
+Do not hide assumptions.
+
+============================================================ 14. DR
+UNCERTAINTY ============================================================
+
+The DR module must output more than a position.
+
+It should provide:
+
+Estimated position + uncertainty/covariance
+
+The policy needs to know not only where DR thinks the system is, but how
+uncertain that estimate is.
+
+Possible outputs: - position covariance - uncertainty radius - standard
+deviation - predicted error distribution
+
+The exact representation should be chosen based on the estimator and
+dataset.
+
+============================================================ 15. DR
+SURVIVABILITY
+============================================================
+
+DR survivability asks:
+
+“If GNSS becomes unavailable for the expected outage duration, can DR
+remain within an acceptable error bound?”
+
+Inputs may include: - current IMU quality - current DR uncertainty -
+current motion characteristics - expected outage duration -
+historical/predicted DR error growth
+
+Conceptually:
+
+Current DR state + expected outage duration + uncertainty/error growth
+-> probability or estimate of staying within error bound
+
+Do not invent a survivability score without defining what it means.
+
+If using a score, define it mathematically and validate it.
+
+============================================================ 16. NEW
+VYRA FORECAST ENGINE
+============================================================
+
+This is the key new direction to investigate.
+
+At a decision time t, the system evaluates candidate modes.
+
+For each action:
+
+GNSS HYBRID DR
+
+estimate the expected localization outcome over a short horizon H.
+
+Possible prediction targets: - future position error - future error
+magnitude - probability of exceeding an error threshold - expected
+maximum error over horizon - expected terminal error - expected error
+growth
+
+A strong research formulation may use:
+
+P(error(t+H) > E_threshold | current state, action)
+
+or:
+
+ExpectedError(action, H)
+
+or a multi-objective risk:
+
+Risk(action) = weighted future error + error-bound violation
+probability + handover penalty + instability penalty
+
+The exact formulation must be researched and justified.
+
+Do not hard-code arbitrary weights without validation.
+
+============================================================ 17.
+FORECASTING APPROACH
+============================================================
+
+Possible first implementation:
+
+For each decision time: 1. Construct a historical feature window. 2.
+Encode current GNSS/IMU/navigation state. 3. Define the candidate
+action. 4. Forecast the future localization consequence for that action.
+5. Repeat for GNSS, HYBRID and DR. 6. Compare forecasts. 7. Select the
+action according to the policy objective. 8. Execute only the selected
+navigation mode. 9. Log the actual future outcome for evaluation.
+
+This creates action-conditioned examples.
+
+Potential training target: future error at H seconds.
+
+Alternative: future maximum error over H seconds.
+
+Alternative: binary threshold violation.
+
+The best target should be selected experimentally.
+
+============================================================ 18.
+IMPORTANT DISTINCTION: PREDICTION VS SIMULATION
+============================================================
+
+The system may use controlled software simulation to generate GNSS
+degradation and outages.
+
+However:
+
+A simulated GNSS outage is NOT the same as real RF jamming.
+
+The UI and paper must explicitly call it: “Simulated GNSS outage”
+
+Do not claim: “Real GNSS jamming”
+
+The simulation should modify recorded data in a controlled, reproducible
+way.
+
+============================================================ 19.
+NAVIGATION POLICY
+============================================================
+
+The adaptive policy receives information such as: - GNSS quality -
+predicted GNSS degradation probability - DR uncertainty - DR
+survivability - expected outage duration - current navigation mode -
+predicted future error/risk for each candidate mode
+
+Outputs: - GNSS - HYBRID - DR
+
+The policy should not simply be a hidden collection of arbitrary if/else
+statements.
+
+Thresholds and decision weights must be: - documented - configurable -
+tuned only using training/validation data - frozen before final test
+evaluation
+
+The policy should include mechanisms to prevent unstable rapid
+switching.
+
+Possible mechanisms: - hysteresis - minimum dwell time - switching
+penalty - confidence margin
+
+These must be experimentally justified.
+
+============================================================ 20.
+BASELINES ============================================================
+
+Required baseline policies:
+
+1.  GNSS-only Always use GNSS when available.
+
+2.  Pure DR Use inertial dead reckoning.
+
+3.  Reactive switching Typical logic: GNSS good -> GNSS GNSS
+    fails/degrades beyond threshold -> DR
+
+4.  Fixed hybrid Use a fixed GNSS/DR fusion configuration.
+
+5.  Proposed VYRA policy Use forecasting + reliability +
+    uncertainty/survivability.
+
+All methods must be tested under identical scenario conditions.
+
+============================================================ 21.
+EXPERIMENT DESIGN
+============================================================
+
+Core experiment:
+
+Take real GNSS/IMU trajectory data.
+
+Apply controlled software GNSS degradation/outage scenarios.
+
+Run: - GNSS-only - pure DR - reactive switching - fixed hybrid - VYRA
+
+Compare them on the same trajectory/scenario.
+
+Possible outage durations: 2s 5s 10s 20s 30s
+
+Also test gradual degradation:
+
+normal -> mild degradation -> moderate degradation -> severe degradation
+-> outage
+
+And recovery:
+
+outage -> weak GNSS -> moderate GNSS -> normal GNSS
+
+============================================================ 22.
+ROBUSTNESS EXPERIMENTS
+============================================================
+
+Test sensitivity to: - GNSS noise - IMU noise - sensor dropout -
+vibration/noise disturbance - different outage durations - different
+trajectories - unseen trajectories - temporary degradation - sudden GNSS
+loss - recovery
+
+Do not invent unsupported sensor disturbances if they are not
+appropriate for the data.
+
+============================================================ 23. PRIMARY
+LOCALIZATION METRICS
+============================================================
+
+Evaluate: - ATE — Absolute Trajectory Error - RTE — Relative Trajectory
+Error - RMSE - maximum localization error - final drift - time above
+error threshold - error-bound violations
+
+Use actual measured values.
+
+Never hard-code demo values.
+
+============================================================ 24.
+POLICY/HANDOVER METRICS
+============================================================
+
+Evaluate: - total handover count - unnecessary handovers - false
+handovers - missed handovers - handover latency - warning lead time -
+mode stability - trajectory discontinuity - time spent in each mode
+
+A system that switches excessively is not necessarily adaptive.
+
+============================================================ 25. MOST
+IMPORTANT GRAPHS
+============================================================
+
+Research graphs are more important than fancy UI.
+
+Recommended:
+
+1.  Warning lead time vs localization error
+2.  False handover rate vs localization error
+3.  Outage duration vs final error
+4.  GNSS quality vs selected navigation mode
+5.  DR uncertainty vs outage duration
+6.  Predicted future error vs actual future error
+7.  Error-bound violation probability calibration
+8.  Forecast horizon vs prediction performance
+9.  Policy performance vs switching penalty
+10. Mode-selection timeline during degradation/outage/recovery
+
+The new VYRA-specific graph should strongly show:
+
+Predicted error for each candidate action versus actual future error.
+
+This directly tests whether the forecasting mechanism is useful.
+
+============================================================ 26.
+ABLATION STUDIES
+============================================================
+
+Remove one important component at a time.
+
+Ablation A: Remove GNSS degradation prediction.
+
+Ablation B: Remove DR survivability.
+
+Ablation C: Remove uncertainty.
+
+Ablation D: Remove counterfactual/action-conditioned forecasting.
+
+Ablation E: Use only current GNSS quality.
+
+Ablation F: Use fixed thresholds instead of forecast-driven selection.
+
+Then compare performance.
+
+This answers: “Which component actually contributes to the improvement?”
+
+============================================================ 27.
+STATISTICAL VALIDATION
+============================================================
+
+Use multiple independent trajectories when available.
+
+Report: - mean - median - standard deviation - confidence intervals
+where appropriate
+
+Use suitable statistical tests only when assumptions are satisfied.
+
+Do not report one favorable trajectory as proof.
+
+============================================================ 28.
+ACCEPTABLE ERROR THRESHOLDS
+============================================================
+
+Example experimental thresholds: 5m 10m 20m
+
+These are not universal truths.
+
+Perform sensitivity analysis.
+
+For example: - performance at 5m - performance at 10m - performance at
+20m
+
+The policy should be evaluated under multiple thresholds where
+practical.
+
+============================================================ 29. SYSTEM
+ARCHITECTURE
+============================================================
+
+High-level architecture:
+
+REAL GNSS + IMU DATA | +—————-+ | | GNSS IMU | | v v GNSS Quality Engine
+IMU Processing | | v v GNSS Degradation Dead Reckoning Prediction | | v
+| DR Uncertainty | | +——-+——–+ | v VYRA FORECAST ENGINE | +——-+——-+ | |
+| GNSS HYBRID DR | | | +——-+——-+ | v Adaptive Policy Engine | v Selected
+Navigation Mode | v Final Position Estimate | +——-+——-+ | | v v
+Evaluation Dashboard | | v v Research Results Live Visualization
+
+The exact implementation may reorder prediction and policy modules if
+mathematically necessary, but changes must be documented.
+
+============================================================ 30.
+SOFTWARE ARCHITECTURE
+============================================================
+
+Recommended backend:
+
+Python 3.11+ FastAPI Pydantic Uvicorn WebSocket
+
+Backend responsibilities: - load processed trajectory data - execute
+scenario simulation - run predictors - run DR/fusion - run forecast
+engine - run policy - calculate metrics - stream live playback state -
+provide experiment results
+
+Potential API routes: - /dataset - /scenarios - /playback - /predict -
+/forecast - /navigation - /metrics - /experiments - /results
+
+============================================================ 31.
+FRONTEND ============================================================
+
+Recommended: - React - Vite - Tailwind CSS - Leaflet - Plotly -
+WebSocket
+
+Dashboard should contain:
+
+1.  Navigation map Show:
+
+-   ground truth
+-   GNSS
+-   DR
+-   VYRA estimate
+
+2.  GNSS status Show:
+
+-   quality
+-   available satellite information
+-   degradation probability
+
+3.  DR status Show:
+
+-   DR position
+-   uncertainty
+-   survivability
+
+4.  Forecast panel Show:
+
+-   predicted future GNSS error
+-   predicted future HYBRID error
+-   predicted future DR error
+-   predicted threshold-violation risk
+
+5.  Navigation mode Large visible indicator: GNSS / HYBRID / DR
+
+6.  Timeline Show:
+
+-   degradation prediction
+-   handover
+-   outage
+-   recovery
+
+7.  Metrics Show:
+
+-   current error
+-   RMSE
+-   ATE
+-   RTE
+-   max error
+-   drift
+-   handover count
+
+8.  Scenario controls
+
+-   Normal
+-   Gradual degradation
+-   Sudden outage
+-   Long outage
+-   Recovery
+-   Custom
+
+9.  Playback controls
+
+-   Start
+-   Pause
+-   Reset
+-   Replay
+
+============================================================ 32. DEMO
+FLOW ============================================================
+
+Step 1: Start normal recorded trajectory playback.
+
+Show: GNSS quality = good Mode = GNSS Error = low
+
+Step 2: Click DEGRADE GNSS.
+
+Quality decreases.
+
+Degradation probability should be generated by the actual model, not
+hardcoded.
+
+Step 3: Forecast engine estimates candidate consequences.
+
+Display: GNSS predicted future risk HYBRID predicted future risk DR
+predicted future risk
+
+Step 4: VYRA chooses the policy action.
+
+Example: GNSS -> HYBRID
+
+Step 5: Trigger simulated GNSS outage.
+
+System continues with the selected robust mode.
+
+Step 6: GNSS recovers.
+
+Policy can transition: DR -> HYBRID -> GNSS if the actual policy
+determines this.
+
+Step 7: Compare: Reactive policy vs VYRA
+
+The comparison must use actual measured experiment outputs.
+
+============================================================ 33. DEMO
+STORY ============================================================
+
+The presenter should be able to explain:
+
+“Under normal conditions, GNSS provides absolute positioning.”
+
+“We now introduce a controlled simulated GNSS degradation.”
+
+“VYRA does not wait only for complete GNSS failure.”
+
+“It predicts whether degradation is likely and forecasts the short-term
+localization consequences of alternative navigation modes.”
+
+“It evaluates GNSS, hybrid fusion and dead reckoning.”
+
+“The policy chooses the mode that best satisfies the defined
+future-error/risk objective.”
+
+“When GNSS becomes unavailable, the system continues navigation using
+the selected robust mode.”
+
+“When GNSS recovers, it can reintegrate GNSS.”
+
+“We compare the result against conventional reactive switching using
+measured trajectory error and handover metrics.”
+
+The most important visual: trajectory comparison against ground truth.
+
+============================================================ 34. TECH
+STACK ============================================================
+
+Core research: - Python 3.11+ - NumPy - Pandas - SciPy - scikit-learn -
+XGBoost - optional PyTorch
+
+Navigation: - GNSS processing - IMU processing - dead reckoning -
+EKF/error-state EKF - coordinate transformations - uncertainty
+estimation
+
+Backend: - FastAPI - Pydantic - Uvicorn - WebSocket
+
+Frontend: - React - Vite - Tailwind CSS - Leaflet - Plotly
+
+Evaluation: - NumPy/Pandas/SciPy - Matplotlib/Plotly - statistical
+analysis
+
+No unnecessary technologies.
+
+============================================================ 35. DO NOT
+USE ============================================================
+
+Do NOT introduce: - LangChain - RAG - LLM agents - Groq - Gemini -
+OpenAI API - vector databases - MongoDB - Firebase
+
+unless a future requirement explicitly proves one is necessary.
+
+The intelligence is: - time-series prediction - state estimation -
+sensor fusion - probabilistic reasoning - machine learning - adaptive
+decision-making
+
+Do not add an LLM just to make the project look more like AI.
+
+============================================================ 36.
+REPOSITORY STRUCTURE
+============================================================
+
+Recommended:
+
+VYRA/ | ├── README.md ├── PROJECT_CONTEXT.md ├── RESEARCH_QUESTION.md
+├── RESEARCH_GAP.md ├── EXPERIMENT_PROTOCOL.md ├──
+SYSTEM_ARCHITECTURE.md ├── DATASET.md ├── CONTRIBUTING.md ├──
+requirements.txt ├── .gitignore | ├── config/ │ └── config.yaml | ├──
+data/ │ ├── raw/ │ ├── processed/ │ ├── splits/ │ └── metadata/ | ├──
+preprocessing/ │ ├── dataset_loader.py │ ├── dataset_inspector.py │ ├──
+cleaning.py │ ├── synchronization.py │ ├── normalization.py │ ├──
+coordinate_utils.py │ ├── windowing.py │ └── quality_checks.py | ├──
+gnss/ │ ├── quality.py │ ├── features.py │ ├── degradation_labels.py │
+├── predictor.py │ └── calibration.py | ├── navigation/ │ ├──
+dead_reckoning.py │ ├── imu_processing.py │ ├── ekf.py │ ├──
+state_estimation.py │ ├── uncertainty.py │ └── coordinate_frames.py |
+├── forecasting/ │ ├── features.py │ ├── targets.py │ ├──
+action_conditioning.py │ ├── models.py │ ├── calibration.py │ └──
+evaluation.py | ├── policy/ │ ├── reactive.py │ ├── hybrid.py │ ├──
+adaptive.py │ ├── thresholds.py │ ├── switching_logic.py │ └──
+survivability.py | ├── simulation/ │ ├── gnss_degradation.py │ ├──
+gnss_outage.py │ ├── sensor_noise.py │ ├── vibration.py │ └──
+sensor_dropout.py | ├── models/ │ ├── logistic.py │ ├── random_forest.py
+│ ├── xgboost_model.py │ └── deep_models/ | ├── experiments/ │ ├──
+baselines.py │ ├── prediction_experiments.py │ ├──
+forecast_experiments.py │ ├── navigation_experiments.py │ ├──
+policy_experiments.py │ ├── robustness_experiments.py │ └── run_all.py |
+├── evaluation/ │ ├── ate.py │ ├── rte.py │ ├── rmse.py │ ├── drift.py │
+├── forecast_metrics.py │ ├── handover_metrics.py │ ├── calibration.py │
+└── statistical_tests.py | ├── backend/ │ ├── main.py │ ├── routes/ │
+├── services/ │ └── schemas/ | ├── frontend/ │ └── src/ │ ├──
+components/ │ ├── pages/ │ ├── charts/ │ ├── map/ │ └── services/ | ├──
+notebooks/ | ├── results/ │ ├── raw/ │ ├── processed/ │ ├── figures/ │
+└── tables/ | └── tests/
+
+============================================================ 37.
+DEVELOPMENT PHASES
+============================================================
+
+PHASE 1 — Research foundation - lock research question - document
+scope - establish repository - establish architecture - create
+experiment protocol - create documentation
+
+Do not start with frontend.
+
+PHASE 2 — Dataset - inspect dataset - preprocess - synchronize - split
+temporally - create quality reports
+
+PHASE 3 — GNSS quality - build quality features - create degradation
+labels - define prediction horizons
+
+PHASE 4 — GNSS prediction - persistence baseline - logistic regression -
+random forest - XGBoost - evaluate lead time and calibration
+
+PHASE 5 — Dead reckoning - IMU processing - coordinate transformation -
+inertial propagation - uncertainty - EKF/fusion
+
+PHASE 6 — DR survivability - model error growth - define survivability -
+validate it
+
+PHASE 7 — VYRA forecast engine - define candidate actions - create
+action-conditioned training examples - train forecasting models -
+predict future error/risk for GNSS, HYBRID, DR - validate forecasts
+against actual future outcomes
+
+PHASE 8 — Adaptive policy - integrate predictions - define objective -
+implement switching penalties/hysteresis if justified - compare against
+reactive policy
+
+PHASE 9 — Controlled experiments - outage durations - degradation
+levels - noise - unseen trajectories - recovery
+
+PHASE 10 — Evaluation - localization metrics - forecast metrics -
+handover metrics - ablations - statistical analysis
+
+PHASE 11 — Dashboard Only after the research pipeline works.
+
+PHASE 12 — Final demo + paper - demo - paper - PPT - project report -
+viva preparation
+
+============================================================ 38.
+RESEARCH EXPERIMENT TEMPLATE
+============================================================
+
+Every major experiment must define:
+
+HYPOTHESIS: What do we expect to happen?
+
+INDEPENDENT VARIABLE: What are we changing?
+
+DEPENDENT VARIABLE: What are we measuring?
+
+BASELINE: What are we comparing against?
+
+METRICS: How will success be measured?
+
+DATA SPLIT: Which trajectories are training/validation/test?
+
+INTERPRETATION: What would a positive or negative result mean?
+
+Example:
+
+Hypothesis: Action-conditioned forecasting will allow the adaptive
+policy to reduce future error-bound violations compared with reactive
+switching.
+
+Independent variable: Navigation policy.
+
+Dependent variables: Future localization error, threshold violations,
+handovers.
+
+Baselines: Reactive switching, fixed hybrid.
+
+Metrics: ATE, RMSE, max error, threshold violation time, handovers.
+
+The actual hypothesis should be refined after literature review.
+
+============================================================ 39.
+REPRODUCIBILITY
+============================================================
+
+Every experiment should record: - dataset version - trajectory IDs -
+preprocessing version - model name - model hyperparameters - forecast
+horizon - outage duration - noise parameters - random seed - policy
+thresholds - switching parameters - evaluation metrics
+
+Use config files instead of hidden hardcoded values.
+
+Example config:
+
+dataset: name: IO-VNBD sampling_rate: auto
+
+prediction: horizons: - 1 - 3 - 5 - 10
+
+simulation: outage_durations: - 2 - 5 - 10 - 20 - 30
+
+evaluation: error_thresholds: - 5 - 10 - 20
+
+random_seed: 42
+
+These are defaults, not scientifically optimal values.
+
+============================================================ 40. TESTING
+REQUIREMENTS
+============================================================
+
+Every major module needs tests.
+
+At minimum: - dataset parsing tests - timestamp/synchronization tests -
+coordinate conversion tests - DR propagation sanity tests - EKF
+shape/value tests - forecast target-generation tests - no-future-leakage
+tests - policy decision tests - scenario simulation tests - metric
+calculation tests - API tests
+
+Critical test: The forecast input at time t must not contain information
+from t+1 onward.
+
+============================================================ 41. PAPER
+CONTRIBUTION CANDIDATE
+============================================================
+
+Potential contribution structure:
+
+1.  GNSS degradation prediction from available navigation-quality
+    signals.
+
+2.  DR uncertainty/survivability estimation for expected outage
+    duration.
+
+3.  Short-horizon action-conditioned localization-error forecasting for
+    candidate navigation modes.
+
+4.  Adaptive navigation-mode selection using predicted future
+    error/risk.
+
+5.  Reproducible comparison against reactive and fixed-fusion baselines.
+
+These are candidate contributions only.
+
+They become research claims only after literature review and experiments
+support them.
+
+============================================================ 42.
+LIMITATIONS ============================================================
+
+Expected limitations: - controlled outage simulation rather than real RF
+interference - dependence on dataset characteristics - smartphone IMU
+quality if smartphone data is used - limited geographic diversity -
+limited vehicle/platform dynamics - imperfect ground truth - assumptions
+in inertial propagation - hardware generalization - distribution shift
+
+Document these honestly.
+
+============================================================ 43. FUTURE
+WORK ============================================================
+
+Possible future work: - real smartphone deployment - real vehicle
+testing - UAV/robot testing - multi-device evaluation - GNSS spoofing
+detection - wheel odometry - visual odometry - LiDAR - map matching -
+V2X positioning - GNSS integrity monitoring - edge deployment -
+lightweight neural models - autonomous driving integration
+
+These are not required for the MVP.
+
+============================================================ 44.
+HARDWARE REQUIREMENT
+============================================================
+
+Core MVP must NOT depend on: - drone - car - GPS jammer - special IMU -
+expensive embedded board
+
+The core prototype should work using:
+
+Public dataset + software simulation + Python + web dashboard
+
+Optional real-device testing can be added later.
+
+============================================================ 45.
+DEFINITION OF DONE
+============================================================
+
+The project is NOT finished when: - UI looks good - one model runs - one
+trajectory works - dashboard shows movement
+
+The project is finished when:
+
+1.  Dataset pipeline is reproducible.
+2.  GNSS degradation labels are valid.
+3.  Prediction model is evaluated.
+4.  DR works independently.
+5.  DR uncertainty is estimated.
+6.  Forecast engine works.
+7.  Forecast accuracy is evaluated.
+8.  Adaptive policy works.
+9.  Baselines work.
+10. Controlled outage scenarios work.
+11. Multiple trajectories are evaluated.
+12. Metrics are calculated automatically.
+13. Ablation studies are performed.
+14. Results are reproducible.
+15. Dashboard visualizes actual experiment outputs.
+16. Limitations are documented.
+17. Research claims are supported by evidence.
+
+============================================================ 46.
+NON-NEGOTIABLE RESEARCH RULES
+============================================================
+
+NEVER: - fabricate results - fabricate accuracy - fabricate dataset
+columns - fabricate ground truth - fabricate literature - fabricate
+citations - claim first-ever without evidence - claim guaranteed
+improvement - train/test on overlapping future information - use future
+data in forecasting features - tune thresholds on the final test set -
+randomly shuffle time-series data without justification - create fake
+confidence values - hardcode “AI predictions” into the dashboard -
+present simulated data as measured real-world data - call a simple
+if/else rule “deep AI” - add an LLM unnecessarily - hide poor results -
+delete unfavorable experiments - change the research question silently
+
+============================================================ 47. HOW
+ANTIGRAVITY SHOULD WORK
+============================================================
+
+Before modifying code: 1. Read this file. 2. Inspect the existing
+repository. 3. Identify the affected module. 4. Identify inputs/outputs.
+5. Check dependencies and interfaces. 6. Make the smallest correct
+change. 7. Run relevant tests. 8. Report what changed.
+
+Do not rewrite unrelated modules.
+
+Do not replace working research logic just to make code prettier.
+
+If architecture must change, explain: - why - what changes - what
+remains compatible - what tests are required
+
+If a requested feature is not relevant, classify it as: CORE RESEARCH
+SUPPORTING DEMO-ONLY FUTURE UNNECESSARY
+
+============================================================ 48. HOW TO
+HANDLE UNKNOWN INFORMATION
+============================================================
+
+If something is unknown, say:
+
+“This needs to be verified from the dataset/literature/code.”
+
+Examples: - unknown dataset column - unknown sampling rate - unknown
+ground-truth quality - unknown literature overlap - unknown model
+performance
+
+Never fill unknown values with assumptions and present them as facts.
+
+============================================================ 49. HOW TO
+HANDLE LITERATURE / NOVELTY
+============================================================
+
+When asked whether VYRA is novel:
+
+1.  Search current literature.
+2.  Search exact concepts and synonyms.
+3.  Search GNSS/INS adaptive switching.
+4.  Search predictive navigation-mode selection.
+5.  Search action-conditioned/counterfactual trajectory prediction.
+6.  Search future error forecasting for navigation.
+7.  Search adaptive sensor fusion under GNSS outages.
+8.  Search UAV, vehicle, robot and smartphone navigation literature.
+9.  Search GitHub/open-source systems.
+10. Search student projects when plagiarism risk matters.
+
+Then classify the proposed contribution:
+
+A — strong research opportunity B — incremental but defensible C —
+cosmetic D — saturated
+
+Do not exaggerate.
+
+============================================================ 50. PROJECT
+PHILOSOPHY ============================================================
+
+The hierarchy is:
+
+REAL DATA -> VALID PREPROCESSING -> VALID MODEL -> VALID BASELINE ->
+CONTROLLED EXPERIMENT -> MEASURED RESULT -> RESEARCH CLAIM
+
+Not:
+
+Cool UI -> fake prediction -> random accuracy -> “95% improvement” ->
+paper
+
+The objective is to build a technically credible, experimentally
+defensible final-year engineering research system.
+
+============================================================ 51.
+ONE-SENTENCE PROJECT EXPLANATION
+============================================================
+
+VYRA is a forecast-driven navigation framework that predicts the
+short-term localization consequences of GNSS, hybrid fusion, and dead
+reckoning choices, then adaptively selects the navigation mode expected
+to minimize future localization risk during GNSS degradation and
+outages.
+
+============================================================ 52.
+THREE-LINE PROJECT EXPLANATION
+============================================================
+
+VYRA monitors GNSS and inertial navigation conditions and predicts
+whether GNSS reliability is likely to degrade.
+
+It forecasts what could happen to localization if GNSS, HYBRID, or DR
+were selected over a short future horizon.
+
+It then selects the navigation mode expected to provide the best future
+error/risk tradeoff and evaluates that decision against conventional
+reactive switching.
+
+============================================================ 53. FINAL
+SYSTEM FLOW ============================================================
+
+Real GNSS + IMU trajectory | v Data preprocessing + synchronization |
++———————-+ | | v v GNSS quality engine IMU processing | | v v GNSS
+degradation Dead reckoning prediction | | v | DR uncertainty | |
++———-+———–+ | v Candidate navigation states | v VYRA forecast engine |
++——–+——–+ | | | GNSS HYBRID DR | | | v v v predicted future localization
+error / risk / violation | v Adaptive policy | v Selected navigation
+mode | v Final position estimate | +——–+——–+ | | v v Evaluation
+Dashboard | v Research results | v Paper / PPT / Demo
+
+============================================================ 54. FINAL
+INSTRUCTION ============================================================
+
+Treat VYRA as a research system first and a software product second.
+
+The dashboard exists to visualize actual research outputs.
+
+The ML models exist to answer measurable research questions.
+
+The policy exists to make a measurable navigation decision.
+
+Every major component must have: - a reason to exist - a defined input -
+a defined output - an evaluation method
+
+The most important question at every stage is:
+
+“Does this component help answer the research question, and can we
+measure whether it helps?”
+
+If yes: BUILD IT.
+
+If no: QUESTION IT.
+
+If it only exists to make the project look impressive: REMOVE IT.

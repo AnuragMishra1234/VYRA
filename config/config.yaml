@@ -1,0 +1,81 @@
+# VYRA Experiment and System Configuration Skeleton
+# Note: Initial configuration defaults subject to empirical validation during Phase 1-10.
+
+dataset:
+  name: "IO-VNBD"
+  raw_dir: "data/raw"
+  processed_dir: "data/processed"
+  splits_dir: "data/splits"
+  metadata_dir: "data/metadata"
+  sampling_rate_hz: null  # To be determined from dataset inspection
+  coordinate_frame: "ENU"
+
+prediction:
+  horizons_seconds:
+    - 1.0
+    - 3.0
+    - 5.0
+    - 10.0
+  features:
+    - "hdop"
+    - "vdop"
+    - "satellite_count"
+    - "c_n0"
+    - "speed_mps"
+  model_type: "logistic_regression"  # Default baseline candidate
+
+forecasting:
+  candidate_actions:
+    - "GNSS"
+    - "HYBRID"
+    - "DR"
+  horizons_seconds:
+    - 1.0
+    - 3.0
+    - 5.0
+    - 10.0
+  error_thresholds_meters:
+    - 5.0
+    - 10.0
+    - 20.0
+  target_metric: "expected_position_error"
+
+simulation:
+  outage_durations_seconds:
+    - 2.0
+    - 5.0
+    - 10.0
+    - 20.0
+    - 30.0
+  degradation_levels:
+    - "mild"
+    - "moderate"
+    - "severe"
+    - "outage"
+  simulate_sensor_dropout: false
+
+navigation:
+  dead_reckoning:
+    integration_method: "strapdown_euler"
+  fusion:
+    filter_type: "ekf"
+    state_dimension: 9  # Position (3), Velocity (3), Attitude (3)
+
+policy:
+  baseline_type: "reactive"
+  dwell_time_seconds: 2.0
+  switching_penalty_weight: 0.1
+  acceptable_error_bound_meters: 10.0
+
+evaluation:
+  metrics:
+    - "ate"
+    - "rte"
+    - "rmse"
+    - "max_error"
+    - "final_drift"
+    - "handover_count"
+    - "warning_lead_time"
+  significance_level: 0.05
+
+random_seed: 42
