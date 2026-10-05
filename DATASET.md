@@ -69,3 +69,29 @@ data/
 > [!WARNING]
 > **Strict Pipeline Failure Rule:**  
 > If `data/raw/` is empty or lacks supported trajectory files, the ingestion pipeline raises an explicit `DatasetNotFoundError` with clear setup instructions. The system will never fabricate synthetic data or proceed with mock values.
+
+---
+
+## 6. Verified Dataset Trajectories & Degradation Distribution (Phase 2)
+
+### 6.1 Trajectory Characteristics
+
+| Trajectory ID | File Size | Sample Count | Duration | Mean Sample Rate | Sats Min / Max / Mean | Discrepancy Max | Split Role |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| `V-S1` | 10.9 MB | 51,746 | ~1.44 hrs (5,174.6 s) | 10.0 Hz | 0.0 / 24.0 / 21.47 | 17.78 m/s | **Train** |
+| `V-S2` | 20.0 MB | 93,876 | ~2.61 hrs (9,387.6 s) | 10.0 Hz | 6.0 / 24.0 / 21.82 | 3.03 m/s | **Validation** |
+| `V-S3a` | 5.2 MB | 24,621 | ~0.68 hrs (2,462.1 s) | 10.0 Hz | 0.0 / 24.0 / 21.86 | 1.83 m/s | **Test** |
+| **Total** | **36.1 MB** | **170,243** | **~4.73 hrs** | **10.0 Hz** | — | — | — |
+
+### 6.2 Empirical Forward Degradation Class Balances
+
+Calculated from `results/processed/gnss_label_statistics.json` under standard navigation integrity criteria:
+- Degraded state: $(Q_t < 0.70) \vee (N_{\text{eff}} < 4) \vee (|v_{\text{GPS}} - v_{\text{wheel}}| > 2.0\text{ m/s})$.
+
+| Split | Trajectory | Horizon $H = 1\text{s}$ | Horizon $H = 3\text{s}$ | Horizon $H = 5\text{s}$ | Horizon $H = 10\text{s}$ |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **Train** | `V-S1` | 219 (0.423%) | 321 (0.620%) | 421 (0.814%) | 671 (1.297%) |
+| **Val** | `V-S2` | 90 (0.096%) | 205 (0.218%) | 276 (0.294%) | 426 (0.454%) |
+| **Test** | `V-S3a` | 30 (0.122%) | 70 (0.284%) | 110 (0.447%) | 210 (0.853%) |
+| **Total** | Aggregate | **339 (0.199%)** | **596 (0.350%)** | **807 (0.474%)** | **1,307 (0.768%)** |
+

@@ -45,74 +45,106 @@ class TrajectoryData:
             )
 
 
+import re
+
 # Standard canonical column name mapping from known IO-VNBD headers to canonical names
 CANONICAL_COLUMN_MAPPINGS: Dict[str, str] = {
-    # IO-VNBD Vehicle Dataset known column headings
+    # Time / Epoch
+    "time since start of day seconds": "timestamp",
     "time since start of day": "timestamp",
     "time": "timestamp",
     "timestamp": "timestamp",
     "t": "timestamp",
+    # Satellites
     "no of gps satellites available": "satellites_available",
+    "satellites available": "satellites_available",
     "satellites": "satellites_available",
-    "satellites_available": "satellites_available",
+    # Coordinates
+    "latitude degrees": "latitude",
     "gps latitude": "latitude",
     "latitude": "latitude",
     "lat": "latitude",
+    "longitude degrees": "longitude",
     "gps longitude": "longitude",
     "longitude": "longitude",
     "lon": "longitude",
-    "gps height": "altitude",
+    # Height / Altitude
+    "height km": "height_km",
+    "gps height": "height_km",
+    "height": "height_km",
     "altitude": "altitude",
-    "height": "altitude",
-    "gps velocity": "speed_mps",  # will convert km/h if needed
+    # Velocity
+    "velocity km hr": "velocity_kmh",
+    "gps velocity": "velocity_kmh",
+    "indicated vehicle speed km hr": "indicated_speed_kmh",
     "speed": "speed_mps",
-    "speed_mps": "speed_mps",
+    "speed mps": "speed_mps",
+    # Heading
+    "heading degrees": "heading_deg",
     "gps heading": "heading_deg",
     "heading": "heading_deg",
-    "heading_deg": "heading_deg",
+    # IMU / Kinematics
+    "indicated longitudinal acceleration g": "acc_y_g",
+    "longitudinal acceleration": "acc_y_g",
+    "indicated lateral acceleration g": "acc_x_g",
+    "lateral acceleration": "acc_x_g",
+    "vertical acceleration": "acc_z",
+    "acc x": "acc_x",
+    "acc y": "acc_y",
+    "acc z": "acc_z",
+    "yaw rate deg sec": "yaw_rate_deg_s",
+    "yaw rate": "yaw_rate_deg_s",
+    "gyro x": "gyro_x",
+    "gyro y": "gyro_y",
+    "gyro z": "gyro_z",
+    "steering angle degrees": "steering_angle_deg",
+    # Quality / Other
+    "sample period seconds": "sample_period",
     "sample period": "sample_period",
     "hdop": "hdop",
     "vdop": "vdop",
-    "c_n0": "c_n0",
-    # Inertial channels
-    "longitudinal acceleration": "acc_y",
-    "lateral acceleration": "acc_x",
-    "vertical acceleration": "acc_z",
-    "acc_x": "acc_x",
-    "acc_y": "acc_y",
-    "acc_z": "acc_z",
-    "yaw rate": "gyro_z",
-    "gyro_x": "gyro_x",
-    "gyro_y": "gyro_y",
-    "gyro_z": "gyro_z",
+    "c n0": "c_n0",
     # Reference / Ground Truth if present
-    "gt_latitude": "gt_latitude",
-    "gt_longitude": "gt_longitude",
-    "gt_altitude": "gt_altitude",
+    "gt latitude": "gt_latitude",
+    "gt longitude": "gt_longitude",
+    "gt altitude": "gt_altitude",
 }
 
 
 def standardize_columns(df: pd.DataFrame) -> pd.DataFrame:
-    """Map known raw column variations into canonical lower-case identifiers.
+    """Map known raw column variations into canonical lower-case identifiers and compute SI units.
 
     Args:
         df: Raw pandas DataFrame.
 
     Returns:
-        DataFrame with standardized column names where matches exist.
+        DataFrame with standardized column names and SI unit conversions.
     """
     df = df.copy()
     rename_dict: Dict[str, str] = {}
     for col in df.columns:
-        norm_key = str(col).strip().lower()
+        # Normalize: lower-case, remove punctuation/parentheses to single spaces
+        norm_key = re.sub(r"[^a-z0-9]+", " ", str(col).lower()).strip()
         if norm_key in CANONICAL_COLUMN_MAPPINGS:
             rename_dict[col] = CANONICAL_COLUMN_MAPPINGS[norm_key]
         else:
-            # Clean string name
-            clean_name = norm_key.replace(" ", "_").replace("-", "_")
+            clean_name = norm_key.replace(" ", "_")
             rename_dict[col] = clean_name
 
     df.rename(columns=rename_dict, inplace=True)
+
+    # Compute standard SI units if converted forms are missing
+    if "height_km" in df.columns and "altitude" not in df.columns:
+        df["altitude"] = pd.to_numeric(df["height_km"], errors="coerce") * 1000.0
+    if "velocity_kmh" in df.columns and "speed_mps" not in df.columns:
+        df["speed_mps"] = pd.to_numeric(df["velocity_kmh"], errors="coerce") / 3.6
+    if "acc_y_g" in df.columns and "acc_y" not in df.columns:
+        df["acc_y"] = pd.to_numeric(df["acc_y_g"], errors="coerce") * 9.80665
+    if "acc_x_g" in df.columns and "acc_x" not in df.columns:
+        df["acc_x"] = pd.to_numeric(df["acc_x_g"], errors="coerce") * 9.80665
+    if "yaw_rate_deg_s" in df.columns and "gyro_z" not in df.columns:
+        df["gyro_z"] = np.radians(pd.to_numeric(df["yaw_rate_deg_s"], errors="coerce"))
+
     return df
 
 

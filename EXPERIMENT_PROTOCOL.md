@@ -96,3 +96,29 @@ This document specifies the experimental protocol governing all data handling, m
 
 ### R. Reproducibility Requirements
 - Every experimental execution logs: configuration hash, git commit hash, trajectory IDs per split, software versions, and generated metrics in structured JSON format under `results/`.
+
+---
+
+## 3. Phase 2 GNSS Degradation Prediction Protocol (Section S)
+
+### S. Degradation Prediction Protocol
+1. **Data Partitioning:**
+   - Train: `V-S1` (51,746 rows, ~1.44 hrs).
+   - Validation: `V-S2` (93,876 rows, ~2.61 hrs). Used strictly for decision threshold $\theta^*$ tuning (maximizing F1) and probability calibration model fitting.
+   - Test: `V-S3a` (24,621 rows, ~0.68 hrs). Completely held-out for one-time evaluation.
+2. **Degradation Definition:**
+   - Instantaneous degraded state: $(Q_t < 0.70) \vee (N_{\text{eff}} < 4) \vee (|v_{\text{GPS}} - v_{\text{wheel}}| > 2.0\text{ m/s})$.
+   - Forward target $Y(t, H) \in \{0, 1\}$: $Y(t, H) = 1$ if any epoch in $(t, t+H]$ is degraded.
+3. **Model Implementations:**
+   - Persistence Baseline: Returns $1.0$ if currently degraded; empirical base rate otherwise.
+   - Regularized Logistic Regression: $L_2$ regularization with training-only `StandardScaler` and balanced class weights.
+   - Random Forest: 100 trees, max depth 12, min leaf samples 5, balanced subsampling.
+   - XGBoost: 150 estimators, max depth 6, learning rate 0.05, `scale_pos_weight = N_neg / N_pos`.
+4. **Probability Calibration:**
+   - Platt scaling (logistic calibration on validation log-odds) and Isotonic regression.
+   - Expected Calibration Error (ECE): 10 equal-width bins on $[0, 1]$.
+   - Brier Score Loss: $\frac{1}{N} \sum (p_i - y_i)^2$.
+5. **Warning Lead-Time Metrics:**
+   - Lead time $t_{\text{lead}} = t_{\text{onset}} - t_{\text{warning}}$ for each contiguous degradation event.
+   - False Alarm Rate per Hour: $N_{\text{false alarms}} / T_{\text{hours}}$, where a false alarm is a positive prediction at epoch $t$ with $Y(t, H) = 0$.
+
