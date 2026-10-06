@@ -77,13 +77,14 @@ navigation:
     integration_method: "strapdown_euler"
   fusion:
     filter_type: "ekf"
-    state_dimension: 9  # Position (3), Velocity (3), Attitude (3)
+    state_dimension: 6  # East, North position, velocity, yaw, gyro bias (6-state horizontal EKF)
 
 policy:
   baseline_type: "reactive"
-  dwell_time_seconds: 2.0
-  switching_penalty_weight: 0.1
-  acceptable_error_bound_meters: 10.0
+  dwell_time_seconds: 3.0
+  hysteresis_margin_m: 1.5
+  switching_penalty_weight: 1.0
+  acceptable_error_bound_meters: 5.0
 
 evaluation:
   metrics:

@@ -186,3 +186,46 @@ def enu_to_ecef(
     dZ = cos_phi * n_arr + sin_phi * u_arr
 
     return X0 + dX, Y0 + dY, Z0 + dZ
+
+
+def ecef_to_geodetic(
+    X: Union[float, np.ndarray],
+    Y: Union[float, np.ndarray],
+    Z: Union[float, np.ndarray],
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Convert ECEF Cartesian coordinates to WGS-84 geodetic (lat_deg, lon_deg, alt_m) using Bowring's method."""
+    X_arr = np.asarray(X, dtype=float)
+    Y_arr = np.asarray(Y, dtype=float)
+    Z_arr = np.asarray(Z, dtype=float)
+
+    e2_prime = (WGS84_A**2 - WGS84_B**2) / (WGS84_B**2)
+    p = np.sqrt(X_arr**2 + Y_arr**2)
+
+    # Bowring closed-form algorithm
+    theta = np.arctan2(Z_arr * WGS84_A, p * WGS84_B)
+    sin_t = np.sin(theta)
+    cos_t = np.cos(theta)
+
+    phi = np.arctan2(
+        Z_arr + e2_prime * WGS84_B * sin_t**3,
+        p - WGS84_E2 * WGS84_A * cos_t**3,
+    )
+    lam = np.arctan2(Y_arr, X_arr)
+
+    sin_phi = np.sin(phi)
+    N = WGS84_A / np.sqrt(1.0 - WGS84_E2 * sin_phi**2)
+    h = p / np.cos(phi) - N
+
+    return np.degrees(phi), np.degrees(lam), h
+
+
+def enu_to_geodetic(
+    e: Union[float, np.ndarray],
+    n: Union[float, np.ndarray],
+    u: Union[float, np.ndarray],
+    anchor: ENUAnchor,
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Convert local ENU Cartesian coordinates back to WGS-84 geodetic (lat_deg, lon_deg, alt_m)."""
+    X, Y, Z = enu_to_ecef(e, n, u, anchor)
+    return ecef_to_geodetic(X, Y, Z)
+

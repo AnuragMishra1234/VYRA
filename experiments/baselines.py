@@ -132,23 +132,9 @@ def run_baseline_trajectory(
         t = timestamps[i]
         is_out = bool(outage_mask[i])
 
-        # Maintain background EKF
+        # Maintain background EKF propagation for filter-based methods
         if i > 0:
             ekf.predict(obs)
-
-        if not is_out:
-            ekf.update_gnss(
-                meas_pos_e=meas_e[i],
-                meas_pos_n=meas_n[i],
-                meas_vel_e=gnss_v_e[i],
-                meas_vel_n=gnss_v_n[i],
-                quality_score=q_scores[i],
-                is_outage=False,
-            )
-            last_valid_gnss_e = meas_e[i]
-            last_valid_gnss_n = meas_n[i]
-
-        ekf_state = ekf.get_current_state(is_outage=is_out)
 
         # Baseline execution
         if baseline_type == "gnss_only":
@@ -159,6 +145,8 @@ def run_baseline_trajectory(
             else:
                 est_e[i] = meas_e[i]
                 est_n[i] = meas_n[i]
+                last_valid_gnss_e = meas_e[i]
+                last_valid_gnss_n = meas_n[i]
 
         elif baseline_type == "pure_dr":
             mode = "DR"
@@ -173,6 +161,20 @@ def run_baseline_trajectory(
 
         elif baseline_type == "fixed_hybrid":
             mode = "HYBRID"
+            # Fixed HYBRID: continuous fusion of GNSS updates whenever signal is present
+            if not is_out:
+                ekf.update_gnss(
+                    meas_pos_e=meas_e[i],
+                    meas_pos_n=meas_n[i],
+                    meas_vel_e=gnss_v_e[i],
+                    meas_vel_n=gnss_v_n[i],
+                    quality_score=q_scores[i],
+                    is_outage=False,
+                )
+                last_valid_gnss_e = meas_e[i]
+                last_valid_gnss_n = meas_n[i]
+
+            ekf_state = ekf.get_current_state(is_outage=is_out)
             est_e[i] = ekf_state.pos_e
             est_n[i] = ekf_state.pos_n
 
@@ -184,9 +186,46 @@ def run_baseline_trajectory(
                 "is_outage": is_out,
             }
             mode, _ = reactive_policy.select_mode(obs_dict, timestamp=t)
-            # In reactive switching: HYBRID uses EKF with GNSS; DR uses EKF propagation without GNSS
-            est_e[i] = ekf_state.pos_e
-            est_n[i] = ekf_state.pos_n
+            # True Reactive Switching (ISSUE-02):
+            # - HYBRID: fuses GNSS innovation updates into EKF
+            # - DR: rejects GNSS innovation updates (zero-gain inertial EKF propagation)
+            if mode == "HYBRID" and not is_out:
+                ekf.update_gnss(
+                    meas_pos_e=meas_e[i],
+                    meas_pos_n=meas_n[i],
+                    meas_vel_e=gnss_v_e[i],
+                    meas_vel_n=gnss_v_n[i],
+                    quality_score=q_scores[i],
+                    is_outage=False,
+                )
+                last_valid_gnss_e = meas_e[i]
+                last_valid_gnss_n = meas_n[i]
+            elif mode == "DR":
+                # DR mode actively rejects GNSS measurement updates
+                pass
+            elif mode == "GNSS" and not is_out:
+                ekf.update_gnss(
+                    meas_pos_e=meas_e[i],
+                    meas_pos_n=meas_n[i],
+                    meas_vel_e=gnss_v_e[i],
+                    meas_vel_n=gnss_v_n[i],
+                    quality_score=q_scores[i],
+                    is_outage=False,
+                )
+                last_valid_gnss_e = meas_e[i]
+                last_valid_gnss_n = meas_n[i]
+
+            if mode in ("HYBRID", "DR"):
+                ekf_state = ekf.get_current_state(is_outage=is_out)
+                est_e[i] = ekf_state.pos_e
+                est_n[i] = ekf_state.pos_n
+            elif mode == "GNSS":
+                if is_out:
+                    est_e[i] = last_valid_gnss_e
+                    est_n[i] = last_valid_gnss_n
+                else:
+                    est_e[i] = meas_e[i]
+                    est_n[i] = meas_n[i]
 
         else:
             raise ValueError(f"Unknown baseline: {baseline_type}")

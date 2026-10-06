@@ -1,0 +1,120 @@
+{
+  "audit_version": "1.0",
+  "project": "VYRA",
+  "audit_phase": "Phase X.5",
+  "audit_date_utc": "2026-10-06T14:50:00Z",
+  "executive_verdict": "PROCEED AFTER FIXES",
+  "scorecard": {
+    "research_correctness": 8.5,
+    "technical_correctness": 8.0,
+    "data_integrity": 9.5,
+    "leakage_safety": 9.5,
+    "forecast_validity": 8.0,
+    "policy_validity": 7.0,
+    "experimental_rigor": 8.5,
+    "reproducibility": 9.0,
+    "paper_readiness": 8.5,
+    "overall_readiness": 8.4
+  },
+  "issues": [
+    {
+      "id": "ISSUE-01",
+      "severity": "CRITICAL",
+      "category": "Policy Logic / Navigation Safety",
+      "affected_modules": [
+        "policy/adaptive.py",
+        "experiments/phase5_experiments.py"
+      ],
+      "description": "Pathological Mode Selection to GNSS During Extended Outages. In long outages where DR survivability duration T_surv < H, the DR survivability penalty Pi_DR(DR) inflates DR cost by +40m to +60m. Consequently, candidate action cost J(GNSS) becomes lower than J(DR), inducing the policy to switch to GNSS during an outage. In GNSS mode under outage, position is held via Zero-Order Hold (ZOH), causing horizontal localization error to balloon to 389.6 meters.",
+      "why_it_matters": "A localization error of 389.6m during highway driving is unacceptable for autonomous navigation, and reviewers will immediately criticize the policy for choosing a disabled sensor over inertial dead reckoning.",
+      "recommended_correction": "Enforce a hard masking rule in evaluate_action_costs: if is_sensor_outage or quality_score < 0.15, set J(GNSS) = infinity. GNSS must be strictly disqualified during verified signal outage.",
+      "requires_execution": false
+    },
+    {
+      "id": "ISSUE-02",
+      "severity": "HIGH",
+      "category": "Baseline Implementation / Experimental Fairness",
+      "affected_modules": [
+        "experiments/baselines.py"
+      ],
+      "description": "Reactive Switching Baseline Does Not Disconnect EKF Updates. In experiments/baselines.py, run_baseline_trajectory updates the background EKF with GNSS observations regardless of whether reactive_policy chose DR or HYBRID, and sets est_e = ekf_state.pos_e. Consequently, Table 1 reports identical metrics for Fixed HYBRID and Reactive Switching (ATE 0.426m), whereas in Table 5 (Ablation F) the real reactive mode gets ATE 0.7122m.",
+      "why_it_matters": "The reactive baseline in Table 1 is inadvertently over-optimistic because it enjoys the benefits of continuous Kalman filtering even when logged as being in DR.",
+      "recommended_correction": "Modify experiments/baselines.py so that when mode == 'DR', GNSS measurement updates to the EKF are rejected (matching lines 295-308 of phase5_experiments.py).",
+      "requires_execution": false
+    },
+    {
+      "id": "ISSUE-03",
+      "severity": "HIGH",
+      "category": "Forecasting / Scientific Defensibility",
+      "affected_modules": [
+        "experiments/phase5_experiments.py"
+      ],
+      "description": "Manual Heuristic Override Overriding Learned ML Forecast. Line 280 in phase5_experiments.py injects: 'if is_out or q_scores[i] < 0.15: forecasts['GNSS'] = max(forecasts.get('GNSS', 10.0), 30.0)'. This manually modifies the output of the machine learning forecast model before passing it to the policy.",
+      "why_it_matters": "Reviewers can argue that VYRA is not purely forecast-driven, but relies on heuristic rule patching to handle outages.",
+      "recommended_correction": "Ensure the training targets for GNSS counterfactuals during simulated outages reflect the true ZOH error, allowing the XGBoost model to predict large GNSS errors organically without post-hoc heuristic overrides.",
+      "requires_execution": false
+    },
+    {
+      "id": "ISSUE-04",
+      "severity": "HIGH",
+      "category": "Policy Stability",
+      "affected_modules": [
+        "policy/adaptive.py",
+        "policy/switching_logic.py"
+      ],
+      "description": "High Handover Chattering Rate (62.26%). During the 41-minute test drive, the policy executed 106 handovers with 53 classified as unnecessary, and a chattering rate of 62.26% occurring within 2.0s of prior switches.",
+      "why_it_matters": "High-frequency mode switching destabilizes vehicle control loops and downstream trajectory planning.",
+      "recommended_correction": "Increase the hysteresis margin epsilon_hyst from 0.5m to 1.5m, and enforce a stricter minimum dwell time tau_dwell = 3.0s (30 epochs at 10 Hz).",
+      "requires_execution": false
+    },
+    {
+      "id": "ISSUE-05",
+      "severity": "MEDIUM",
+      "category": "Configuration Consistency",
+      "affected_modules": [
+        "config/config.yaml"
+      ],
+      "description": "Stale Parameter Values in config.yaml. config.yaml specifies 'state_dimension: 9' and 'acceptable_error_bound_meters: 10.0', whereas the codebase implements a 6-state EKF and uses E_threshold = 5.0m.",
+      "why_it_matters": "Creates confusion for external researchers trying to reproduce the codebase from configuration files.",
+      "recommended_correction": "Update config/config.yaml to state_dimension: 6 and error_threshold_m: 5.0.",
+      "requires_execution": false
+    },
+    {
+      "id": "ISSUE-06",
+      "severity": "MEDIUM",
+      "category": "Test Suite Completeness",
+      "affected_modules": [
+        "tests/forecasting/test_models.py"
+      ],
+      "description": "Lack of Direct Assertions on Action Sensitivity in Test Suite. test_models.py verifies that output arrays exist and are non-negative, but does not assert that e_hat(s_t, 'DR') != e_hat(s_t, 'GNSS').",
+      "why_it_matters": "A regression where the model ignores action one-hot inputs could still pass unit tests.",
+      "recommended_correction": "Add a dedicated unit test asserting that changing action candidate yields strictly different predictions on state vectors where GNSS quality is low.",
+      "requires_execution": false
+    },
+    {
+      "id": "ISSUE-07",
+      "severity": "MEDIUM",
+      "category": "Dataset Generalization",
+      "affected_modules": [
+        "RESEARCH_PAPER.txt",
+        "data/splits/splits.json"
+      ],
+      "description": "Held-Out Testing Limited to Single Physical Route (V-S3a). While V-S3a provides 24,621 epochs (41 minutes) and 20 outage events, it represents a single driving trip in the UK.",
+      "why_it_matters": "Reviewers will question generalization across different road environments, sensor grades, or vehicle dynamics.",
+      "recommended_correction": "Document this explicitly as a known limitation in Section 42 / Appendix F (Threats to Validity) and outline multi-route cross-dataset evaluation as future work.",
+      "requires_execution": false
+    },
+    {
+      "id": "ISSUE-08",
+      "severity": "LOW",
+      "category": "Repository Cleanliness",
+      "affected_modules": [
+        "results/figures/"
+      ],
+      "description": "Dual Naming Conventions in results/figures/. Both unnumbered figures ('action_ranking_accuracy.png') and publication-numbered figures ('fig01_...png' to 'fig16_...png') reside in the directory.",
+      "why_it_matters": "Minor duplication and visual clutter in results directory.",
+      "recommended_correction": "Consolidate results/figures/ onto the canonical numbered naming convention fig01 to fig16.",
+      "requires_execution": false
+    }
+  ]
+}

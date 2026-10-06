@@ -54,6 +54,8 @@ class VYRAAdaptivePolicy:
         violation_probs: Optional[Dict[str, float]] = None,
         dr_surv_duration_s: float = 10.0,
         active_mode: Optional[str] = None,
+        is_sensor_outage: bool = False,
+        quality_score: Optional[float] = None,
     ) -> Tuple[Dict[str, float], str]:
         """Compute multi-objective decision cost J(A) for all candidate actions.
 
@@ -62,6 +64,8 @@ class VYRAAdaptivePolicy:
             violation_probs: Optional mapping action -> P(error > E_thresh).
             dr_surv_duration_s: Remaining survivable duration in DR (seconds).
             active_mode: Current operating mode (default: current mode from manager).
+            is_sensor_outage: True if GNSS signal is completely missing/in outage.
+            quality_score: Optional composite GNSS quality score in [0.0, 1.0].
 
         Returns:
             Tuple of (costs dictionary, argmin candidate action).
@@ -70,6 +74,13 @@ class VYRAAdaptivePolicy:
         costs: Dict[str, float] = {}
 
         for act in ACTION_NAMES:
+            # Physical unavailability gating (ISSUE-01):
+            # When GNSS is genuinely unavailable (active sensor outage or quality_score == 0.0),
+            # standalone GNSS cannot be selected as a candidate navigation action.
+            if act == "GNSS" and (is_sensor_outage or (quality_score is not None and quality_score == 0.0)):
+                costs[act] = float("inf")
+                continue
+
             e_hat = float(forecasts.get(act, 999.0))
 
             # 1. Base predicted continuous error
@@ -107,6 +118,7 @@ class VYRAAdaptivePolicy:
         dr_surv_duration_s: float = 10.0,
         timestamp: float = 0.0,
         is_sensor_outage: bool = False,
+        quality_score: Optional[float] = None,
     ) -> Tuple[str, Dict[str, Any]]:
         """Select optimal navigation mode based on forecast evaluation.
 
@@ -116,6 +128,7 @@ class VYRAAdaptivePolicy:
             dr_surv_duration_s: Current estimated DR survivable duration.
             timestamp: Current timestamp (seconds).
             is_sensor_outage: True if GNSS signal is completely missing.
+            quality_score: Optional composite GNSS quality score in [0.0, 1.0].
 
         Returns:
             Tuple of (effective_mode, telemetry_dict).
@@ -128,6 +141,8 @@ class VYRAAdaptivePolicy:
             violation_probs=violation_probs,
             dr_surv_duration_s=dr_surv_duration_s,
             active_mode=curr_mode,
+            is_sensor_outage=is_sensor_outage,
+            quality_score=quality_score,
         )
 
         curr_cost = costs.get(curr_mode, 999.0)
@@ -141,7 +156,7 @@ class VYRAAdaptivePolicy:
                 target_mode = curr_mode  # Cost advantage too small, remain in current mode
 
         # Check emergency override
-        # If current mode forecast exceeds emergency threshold, force immediate transition
+        # If current mode forecast exceeds emergency threshold or sensor is in outage, force immediate transition
         curr_e_hat = float(forecasts.get(curr_mode, 0.0))
         is_emergency = is_sensor_outage or (curr_e_hat > self.thresholds.emergency_threshold_m)
 
@@ -168,8 +183,8 @@ class VYRAAdaptivePolicy:
             "previous_mode": curr_mode,
             "switched": switched,
             "is_emergency": is_emergency,
-            "forecasts": {k: round(v, 4) for k, v in forecasts.items()},
-            "decision_costs": {k: round(v, 4) for k, v in costs.items()},
+            "forecasts": {k: round(v, 4) if np.isfinite(v) else 1e9 for k, v in forecasts.items()},
+            "decision_costs": {k: round(v, 4) if np.isfinite(v) else 1e9 for k, v in costs.items()},
             "dr_surv_duration_s": round(dr_surv_duration_s, 2),
             "reason": reason,
         }

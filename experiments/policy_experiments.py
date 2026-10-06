@@ -221,15 +221,12 @@ def run_closed_loop_policy_simulation(
                 for act in ACTION_NAMES
             } if precomputed_forecasts else {"GNSS": 2.0, "HYBRID": 1.5, "DR": 2.5}
 
-            # If outage is active, GNSS forecast is high
-            if is_out:
-                forecasts["GNSS"] = max(forecasts["GNSS"], 30.0)
-
             selected_mode, telemetry = policy.select_mode(
                 forecasts=forecasts,
                 dr_surv_duration_s=surv_dur,
                 timestamp=t,
                 is_sensor_outage=is_out,
+                quality_score=q_scores[i],
             )
 
         active_modes.append(selected_mode)

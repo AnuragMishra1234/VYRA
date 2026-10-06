@@ -30,6 +30,8 @@
 2. **Ground Truth Precision:** Need to verify the specific sensor used as ground truth across each drive sequence (tactical INS vs RTK fixed).
 3. **GNSS Metrics Granularity:** Need to confirm whether raw Carrier-to-Noise Ratio ($C/N_0$) or raw pseudoranges are included or whether only satellite counts and DOP are logged.
 4. **Coordinate Frames:** Sensor mounting orientation relative to the vehicle chassis frame must be verified from dataset documentation.
+5. **Single-Route Test Split:** Current held-out evaluation relies exclusively on physical trajectory `V-S3a` (suburban/highway route in Coventry, UK). Cross-route, cross-city, and cross-platform generalization across distinct environmental clutters remains unverified.
+6. **Simulated Outages:** GNSS outage and degradation scenarios in this benchmark are software-simulated upon authentic driving dynamics. RF-level front-end phenomena (e.g., AGC saturation during physical jamming) are not present in the dataset.
 
 ---
 

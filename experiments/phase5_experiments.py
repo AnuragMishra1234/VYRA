@@ -132,7 +132,7 @@ def run_vyra_trajectory_simulation(
         outage_mask = np.zeros(n, dtype=bool)
 
     if thresholds is None:
-        thresholds = PolicyThresholds()
+        thresholds = PolicyThresholds.from_yaml(REPO_ROOT / "config" / "config.yaml")
 
     # Modify thresholds for Ablation G
     enforce_dwell = True
@@ -275,16 +275,13 @@ def run_vyra_trajectory_simulation(
                     pred_val = float(forecast_model.predict(X_act)[0])
                     forecasts[act] = pred_val
 
-            # If outage is active or quality is zero, GNSS error is large
-            if is_out or q_scores[i] < 0.15:
-                forecasts["GNSS"] = max(forecasts.get("GNSS", 10.0), 30.0)
-
-            # Select mode via adaptive policy
+            # Select mode via adaptive policy (pure ML forecast input, zero manual overrides)
             selected_mode, telem = policy.select_mode(
                 forecasts=forecasts,
                 dr_surv_duration_s=surv_dur,
                 timestamp=t,
                 is_sensor_outage=is_out,
+                quality_score=q_scores[i],
             )
 
         active_modes.append(selected_mode)
@@ -407,14 +404,7 @@ def execute_phase5_experiments() -> Dict[str, Any]:
     # EXPERIMENT 1: CORE NAVIGATION COMPARISON (TABLE 1)
     # ============================================================
     logger.info("--- Running Experiment 1: Core Navigation Comparison ---")
-    thresholds = PolicyThresholds(
-        forecast_horizon_seconds=3.0,
-        error_threshold_m=5.0,
-        risk_weight_beta=2.0,
-        switching_penalty_m=1.0,
-        dwell_time_seconds=2.0,
-        hysteresis_margin_m=0.5,
-    )
+    thresholds = PolicyThresholds.from_yaml(REPO_ROOT / "config" / "config.yaml")
 
     core_results: Dict[str, Any] = {}
     # Run Baselines

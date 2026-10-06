@@ -32,10 +32,10 @@ class PolicyThresholds:
 
     error_threshold_m: float = 5.0
     emergency_threshold_m: float = 15.0
-    dwell_time_seconds: float = 2.0
+    dwell_time_seconds: float = 3.0
     switching_penalty_m: float = 1.0
     risk_weight_beta: float = 2.0
-    hysteresis_margin_m: float = 0.5
+    hysteresis_margin_m: float = 1.5
     reactive_quality_threshold: float = 0.70
     reactive_min_satellites: float = 4.0
     reactive_max_kinematic_discrepancy: float = 2.0
@@ -55,7 +55,8 @@ class PolicyThresholds:
         ds_cfg = config_dict.get("dataset", {})
 
         sampling_rate = float(ds_cfg.get("sampling_rate_hz", 10.0))
-        dwell_sec = float(pol_cfg.get("dwell_time_seconds", 2.0))
+        dwell_sec = float(pol_cfg.get("dwell_time_seconds", 3.0))
+        hyst_margin = float(pol_cfg.get("hysteresis_margin_m", 1.5))
         switch_pen = float(pol_cfg.get("switching_penalty_weight", 1.0))
         err_bound = float(pol_cfg.get("acceptable_error_bound_meters", 5.0))
 
@@ -65,7 +66,7 @@ class PolicyThresholds:
             dwell_time_seconds=dwell_sec,
             switching_penalty_m=switch_pen,
             risk_weight_beta=2.0,
-            hysteresis_margin_m=0.5,
+            hysteresis_margin_m=hyst_margin,
             reactive_quality_threshold=0.70,
             reactive_min_satellites=4.0,
             reactive_max_kinematic_discrepancy=2.0,

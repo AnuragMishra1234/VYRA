@@ -87,3 +87,57 @@ def test_vyra_adaptive_policy_dr_survivability_penalty():
     # DR should be penalized and HYBRID should be chosen
     assert costs["DR"] > costs["HYBRID"]
     assert best_candidate == "HYBRID"
+
+
+def test_vyra_adaptive_policy_outage_disqualification():
+    """Verify ISSUE-01 fix: GNSS is disqualified during outage, even with low DR survivability."""
+    thresh = PolicyThresholds(forecast_horizon_seconds=3.0)
+    policy = VYRAAdaptivePolicy(thresholds=thresh)
+
+    forecasts = {
+        "GNSS": 2.0,  # Model might mistakenly predict low error
+        "HYBRID": 8.0,
+        "DR": 6.0,
+    }
+
+    # Case A: Sensor outage is True, DR survivability is 0.0s (severe DR penalty)
+    costs, best_candidate = policy.evaluate_action_costs(
+        forecasts=forecasts,
+        dr_surv_duration_s=0.0,
+        active_mode="DR",
+        is_sensor_outage=True,
+    )
+    assert np.isinf(costs["GNSS"])
+    assert best_candidate in ("HYBRID", "DR")
+    assert best_candidate != "GNSS"
+
+    # Case B: Mode selection during outage never selects GNSS
+    mode, telem = policy.select_mode(
+        forecasts=forecasts,
+        dr_surv_duration_s=0.0,
+        timestamp=10.0,
+        is_sensor_outage=True,
+    )
+    assert mode != "GNSS"
+    assert telem["candidate_mode"] != "GNSS"
+
+    # Case C: Normal GNSS conditions (not outage) -> GNSS is finite and eligible
+    costs_norm, best_norm = policy.evaluate_action_costs(
+        forecasts=forecasts,
+        dr_surv_duration_s=10.0,
+        active_mode="GNSS",
+        is_sensor_outage=False,
+    )
+    assert np.isfinite(costs_norm["GNSS"])
+    assert best_norm == "GNSS"
+
+    # Case D: Degraded GNSS (quality_score=0.4, not outage) -> GNSS is evaluated with finite cost
+    costs_deg, _ = policy.evaluate_action_costs(
+        forecasts=forecasts,
+        dr_surv_duration_s=10.0,
+        active_mode="HYBRID",
+        is_sensor_outage=False,
+        quality_score=0.4,
+    )
+    assert np.isfinite(costs_deg["GNSS"])
+
