@@ -1,0 +1,202 @@
+[
+  {
+    "Outage Duration (s)":2.0,
+    "Policy":"GNSS-Only",
+    "Outage ATE (m)":4.724,
+    "Outage RMSE (m)":7.771,
+    "Peak Error (m)":36.086,
+    "Violation Rate (%)":26.92
+  },
+  {
+    "Outage Duration (s)":2.0,
+    "Policy":"Pure DR",
+    "Outage ATE (m)":346.189,
+    "Outage RMSE (m)":487.971,
+    "Peak Error (m)":898.298,
+    "Violation Rate (%)":75.0
+  },
+  {
+    "Outage Duration (s)":2.0,
+    "Policy":"Fixed HYBRID",
+    "Outage ATE (m)":0.364,
+    "Outage RMSE (m)":0.47,
+    "Peak Error (m)":1.148,
+    "Violation Rate (%)":0.0
+  },
+  {
+    "Outage Duration (s)":2.0,
+    "Policy":"Reactive Switching",
+    "Outage ATE (m)":0.632,
+    "Outage RMSE (m)":0.892,
+    "Peak Error (m)":2.633,
+    "Violation Rate (%)":0.0
+  },
+  {
+    "Outage Duration (s)":2.0,
+    "Policy":"VYRA Adaptive (Proposed)",
+    "Outage ATE (m)":1.767,
+    "Outage RMSE (m)":2.517,
+    "Peak Error (m)":9.573,
+    "Violation Rate (%)":6.59
+  },
+  {
+    "Outage Duration (s)":5.0,
+    "Policy":"GNSS-Only",
+    "Outage ATE (m)":11.075,
+    "Outage RMSE (m)":18.715,
+    "Peak Error (m)":71.975,
+    "Violation Rate (%)":45.45
+  },
+  {
+    "Outage Duration (s)":5.0,
+    "Policy":"Pure DR",
+    "Outage ATE (m)":392.008,
+    "Outage RMSE (m)":535.148,
+    "Peak Error (m)":1002.472,
+    "Violation Rate (%)":100.0
+  },
+  {
+    "Outage Duration (s)":5.0,
+    "Policy":"Fixed HYBRID",
+    "Outage ATE (m)":0.422,
+    "Outage RMSE (m)":0.48,
+    "Peak Error (m)":1.315,
+    "Violation Rate (%)":0.0
+  },
+  {
+    "Outage Duration (s)":5.0,
+    "Policy":"Reactive Switching",
+    "Outage ATE (m)":0.575,
+    "Outage RMSE (m)":0.763,
+    "Peak Error (m)":2.237,
+    "Violation Rate (%)":0.0
+  },
+  {
+    "Outage Duration (s)":5.0,
+    "Policy":"VYRA Adaptive (Proposed)",
+    "Outage ATE (m)":1.203,
+    "Outage RMSE (m)":1.781,
+    "Peak Error (m)":8.971,
+    "Violation Rate (%)":2.48
+  },
+  {
+    "Outage Duration (s)":10.0,
+    "Policy":"GNSS-Only",
+    "Outage ATE (m)":35.636,
+    "Outage RMSE (m)":65.477,
+    "Peak Error (m)":253.79,
+    "Violation Rate (%)":62.13
+  },
+  {
+    "Outage Duration (s)":10.0,
+    "Policy":"Pure DR",
+    "Outage ATE (m)":432.106,
+    "Outage RMSE (m)":535.079,
+    "Peak Error (m)":987.21,
+    "Violation Rate (%)":100.0
+  },
+  {
+    "Outage Duration (s)":10.0,
+    "Policy":"Fixed HYBRID",
+    "Outage ATE (m)":0.861,
+    "Outage RMSE (m)":1.249,
+    "Peak Error (m)":3.943,
+    "Violation Rate (%)":0.0
+  },
+  {
+    "Outage Duration (s)":10.0,
+    "Policy":"Reactive Switching",
+    "Outage ATE (m)":1.407,
+    "Outage RMSE (m)":2.174,
+    "Peak Error (m)":7.705,
+    "Violation Rate (%)":6.29
+  },
+  {
+    "Outage Duration (s)":10.0,
+    "Policy":"VYRA Adaptive (Proposed)",
+    "Outage ATE (m)":1.667,
+    "Outage RMSE (m)":2.384,
+    "Peak Error (m)":8.28,
+    "Violation Rate (%)":6.87
+  },
+  {
+    "Outage Duration (s)":20.0,
+    "Policy":"GNSS-Only",
+    "Outage ATE (m)":104.119,
+    "Outage RMSE (m)":144.663,
+    "Peak Error (m)":381.015,
+    "Violation Rate (%)":76.01
+  },
+  {
+    "Outage Duration (s)":20.0,
+    "Policy":"Pure DR",
+    "Outage ATE (m)":473.994,
+    "Outage RMSE (m)":520.148,
+    "Peak Error (m)":836.817,
+    "Violation Rate (%)":100.0
+  },
+  {
+    "Outage Duration (s)":20.0,
+    "Policy":"Fixed HYBRID",
+    "Outage ATE (m)":1.481,
+    "Outage RMSE (m)":2.105,
+    "Peak Error (m)":6.892,
+    "Violation Rate (%)":3.78
+  },
+  {
+    "Outage Duration (s)":20.0,
+    "Policy":"Reactive Switching",
+    "Outage ATE (m)":2.553,
+    "Outage RMSE (m)":4.064,
+    "Peak Error (m)":13.964,
+    "Violation Rate (%)":17.44
+  },
+  {
+    "Outage Duration (s)":20.0,
+    "Policy":"VYRA Adaptive (Proposed)",
+    "Outage ATE (m)":1.981,
+    "Outage RMSE (m)":2.579,
+    "Peak Error (m)":9.698,
+    "Violation Rate (%)":6.46
+  },
+  {
+    "Outage Duration (s)":30.0,
+    "Policy":"GNSS-Only",
+    "Outage ATE (m)":187.053,
+    "Outage RMSE (m)":240.574,
+    "Peak Error (m)":520.611,
+    "Violation Rate (%)":82.28
+  },
+  {
+    "Outage Duration (s)":30.0,
+    "Policy":"Pure DR",
+    "Outage ATE (m)":536.924,
+    "Outage RMSE (m)":586.826,
+    "Peak Error (m)":812.626,
+    "Violation Rate (%)":100.0
+  },
+  {
+    "Outage Duration (s)":30.0,
+    "Policy":"Fixed HYBRID",
+    "Outage ATE (m)":3.231,
+    "Outage RMSE (m)":4.546,
+    "Peak Error (m)":12.745,
+    "Violation Rate (%)":26.62
+  },
+  {
+    "Outage Duration (s)":30.0,
+    "Policy":"Reactive Switching",
+    "Outage ATE (m)":6.829,
+    "Outage RMSE (m)":8.862,
+    "Peak Error (m)":21.259,
+    "Violation Rate (%)":54.51
+  },
+  {
+    "Outage Duration (s)":30.0,
+    "Policy":"VYRA Adaptive (Proposed)",
+    "Outage ATE (m)":3.573,
+    "Outage RMSE (m)":4.717,
+    "Peak Error (m)":12.745,
+    "Violation Rate (%)":28.37
+  }
+]

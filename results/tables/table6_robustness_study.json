@@ -1,0 +1,164 @@
+[
+  {
+    "Stress Condition":"Sensor Noise: Nominal (Clean)",
+    "Policy":"Fixed HYBRID",
+    "ATE (m)":0.6975,
+    "RMSE (m)":2.3848,
+    "Max Error (m)":20.0746,
+    "Violations > 5m (%)":4.45,
+    "Handovers":0
+  },
+  {
+    "Stress Condition":"Sensor Noise: Nominal (Clean)",
+    "Policy":"Reactive Switching",
+    "ATE (m)":0.6976,
+    "RMSE (m)":2.3848,
+    "Max Error (m)":20.0746,
+    "Violations > 5m (%)":4.45,
+    "Handovers":42
+  },
+  {
+    "Stress Condition":"Sensor Noise: Nominal (Clean)",
+    "Policy":"VYRA Adaptive (Proposed)",
+    "ATE (m)":0.5693,
+    "RMSE (m)":2.2514,
+    "Max Error (m)":20.0746,
+    "Violations > 5m (%)":3.87,
+    "Handovers":79
+  },
+  {
+    "Stress Condition":"Sensor Noise: Moderate Noise",
+    "Policy":"Fixed HYBRID",
+    "ATE (m)":1.0199,
+    "RMSE (m)":2.3888,
+    "Max Error (m)":20.5455,
+    "Violations > 5m (%)":4.25,
+    "Handovers":0
+  },
+  {
+    "Stress Condition":"Sensor Noise: Moderate Noise",
+    "Policy":"Reactive Switching",
+    "ATE (m)":1.0201,
+    "RMSE (m)":2.3888,
+    "Max Error (m)":20.5455,
+    "Violations > 5m (%)":4.25,
+    "Handovers":42
+  },
+  {
+    "Stress Condition":"Sensor Noise: Moderate Noise",
+    "Policy":"VYRA Adaptive (Proposed)",
+    "ATE (m)":2.6817,
+    "RMSE (m)":3.4326,
+    "Max Error (m)":20.5455,
+    "Violations > 5m (%)":7.69,
+    "Handovers":79
+  },
+  {
+    "Stress Condition":"Sensor Noise: Severe Noise",
+    "Policy":"Fixed HYBRID",
+    "ATE (m)":2.2771,
+    "RMSE (m)":3.3499,
+    "Max Error (m)":22.7152,
+    "Violations > 5m (%)":7.47,
+    "Handovers":0
+  },
+  {
+    "Stress Condition":"Sensor Noise: Severe Noise",
+    "Policy":"Reactive Switching",
+    "ATE (m)":2.2768,
+    "RMSE (m)":3.3499,
+    "Max Error (m)":22.7152,
+    "Violations > 5m (%)":7.47,
+    "Handovers":42
+  },
+  {
+    "Stress Condition":"Sensor Noise: Severe Noise",
+    "Policy":"VYRA Adaptive (Proposed)",
+    "ATE (m)":6.0033,
+    "RMSE (m)":6.9921,
+    "Max Error (m)":22.9479,
+    "Violations > 5m (%)":55.62,
+    "Handovers":81
+  },
+  {
+    "Stress Condition":"Sensor Dropout: 0% Dropout",
+    "Policy":"Fixed HYBRID",
+    "ATE (m)":0.6975,
+    "RMSE (m)":2.3848,
+    "Max Error (m)":20.0746,
+    "Violations > 5m (%)":4.45,
+    "Handovers":0
+  },
+  {
+    "Stress Condition":"Sensor Dropout: 0% Dropout",
+    "Policy":"Reactive Switching",
+    "ATE (m)":0.6976,
+    "RMSE (m)":2.3848,
+    "Max Error (m)":20.0746,
+    "Violations > 5m (%)":4.45,
+    "Handovers":42
+  },
+  {
+    "Stress Condition":"Sensor Dropout: 0% Dropout",
+    "Policy":"VYRA Adaptive (Proposed)",
+    "ATE (m)":0.5693,
+    "RMSE (m)":2.2514,
+    "Max Error (m)":20.0746,
+    "Violations > 5m (%)":3.87,
+    "Handovers":79
+  },
+  {
+    "Stress Condition":"Sensor Dropout: 5% Burst Dropout",
+    "Policy":"Fixed HYBRID",
+    "ATE (m)":0.6721,
+    "RMSE (m)":2.3287,
+    "Max Error (m)":20.0608,
+    "Violations > 5m (%)":3.76,
+    "Handovers":0
+  },
+  {
+    "Stress Condition":"Sensor Dropout: 5% Burst Dropout",
+    "Policy":"Reactive Switching",
+    "ATE (m)":0.7525,
+    "RMSE (m)":2.5616,
+    "Max Error (m)":23.1439,
+    "Violations > 5m (%)":3.98,
+    "Handovers":354
+  },
+  {
+    "Stress Condition":"Sensor Dropout: 5% Burst Dropout",
+    "Policy":"VYRA Adaptive (Proposed)",
+    "ATE (m)":0.562,
+    "RMSE (m)":2.2094,
+    "Max Error (m)":20.053,
+    "Violations > 5m (%)":3.24,
+    "Handovers":408
+  },
+  {
+    "Stress Condition":"Sensor Dropout: 10% Burst Dropout",
+    "Policy":"Fixed HYBRID",
+    "ATE (m)":0.6719,
+    "RMSE (m)":2.3216,
+    "Max Error (m)":20.0601,
+    "Violations > 5m (%)":3.73,
+    "Handovers":0
+  },
+  {
+    "Stress Condition":"Sensor Dropout: 10% Burst Dropout",
+    "Policy":"Reactive Switching",
+    "ATE (m)":0.783,
+    "RMSE (m)":2.5971,
+    "Max Error (m)":23.25,
+    "Violations > 5m (%)":4.0,
+    "Handovers":526
+  },
+  {
+    "Stress Condition":"Sensor Dropout: 10% Burst Dropout",
+    "Policy":"VYRA Adaptive (Proposed)",
+    "ATE (m)":0.5641,
+    "RMSE (m)":2.1956,
+    "Max Error (m)":20.0297,
+    "Violations > 5m (%)":3.2,
+    "Handovers":572
+  }
+]

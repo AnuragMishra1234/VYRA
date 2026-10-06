@@ -1,0 +1,57 @@
+[
+  {
+    "Failure Case ID":"FAIL-01",
+    "Timestamp (s)":66148.1,
+    "Scenario Phase":"quality_decline",
+    "Selected Mode":"GNSS",
+    "VYRA Error (m)":1.782,
+    "Hybrid Error (m)":0.229,
+    "Forecasted DR Error (m)":18.29,
+    "Forecasted HYBRID Error (m)":18.89,
+    "Root Cause Analysis":"Rapid cornering maneuver during signal quality decline causing DR extrapolation divergence."
+  },
+  {
+    "Failure Case ID":"FAIL-02",
+    "Timestamp (s)":66148.3,
+    "Scenario Phase":"quality_decline",
+    "Selected Mode":"GNSS",
+    "VYRA Error (m)":2.158,
+    "Hybrid Error (m)":0.229,
+    "Forecasted DR Error (m)":18.54,
+    "Forecasted HYBRID Error (m)":18.81,
+    "Root Cause Analysis":"Rapid cornering maneuver during signal quality decline causing DR extrapolation divergence."
+  },
+  {
+    "Failure Case ID":"FAIL-03",
+    "Timestamp (s)":66148.6,
+    "Scenario Phase":"quality_decline",
+    "Selected Mode":"GNSS",
+    "VYRA Error (m)":2.8,
+    "Hybrid Error (m)":0.184,
+    "Forecasted DR Error (m)":29.91,
+    "Forecasted HYBRID Error (m)":23.08,
+    "Root Cause Analysis":"Rapid cornering maneuver during signal quality decline causing DR extrapolation divergence."
+  },
+  {
+    "Failure Case ID":"FAIL-04",
+    "Timestamp (s)":66148.9,
+    "Scenario Phase":"quality_decline",
+    "Selected Mode":"GNSS",
+    "VYRA Error (m)":2.818,
+    "Hybrid Error (m)":0.402,
+    "Forecasted DR Error (m)":34.61,
+    "Forecasted HYBRID Error (m)":22.83,
+    "Root Cause Analysis":"Rapid cornering maneuver during signal quality decline causing DR extrapolation divergence."
+  },
+  {
+    "Failure Case ID":"FAIL-05",
+    "Timestamp (s)":66149.3,
+    "Scenario Phase":"quality_decline",
+    "Selected Mode":"GNSS",
+    "VYRA Error (m)":2.4,
+    "Hybrid Error (m)":0.407,
+    "Forecasted DR Error (m)":30.07,
+    "Forecasted HYBRID Error (m)":24.65,
+    "Root Cause Analysis":"Rapid cornering maneuver during signal quality decline causing DR extrapolation divergence."
+  }
+]

@@ -8,10 +8,12 @@ export default function LandingFooter({ onViewChange, onOpenResearchModal }) {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-12">
           {/* Brand Info */}
           <div className="md:col-span-2 space-y-3">
-            <div className="flex items-center gap-2.5">
-              <div className="w-7 h-7 rounded-lg bg-blue-600 flex items-center justify-center font-black text-sm text-white">
-                V
-              </div>
+            <div className="flex items-center gap-3">
+              <img
+                src="/vyra-logo.png"
+                alt="VYRA Logo"
+                className="h-10 w-auto object-contain filter drop-shadow"
+              />
               <span className="font-bold text-white text-base tracking-tight font-mono">VYRA</span>
             </div>
             <p className="text-slate-400 text-xs leading-relaxed max-w-md font-sans">

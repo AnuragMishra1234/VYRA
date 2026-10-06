@@ -87,11 +87,11 @@ export default function PlotsView({ history = [] }) {
   }, [history]);
 
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 shadow-lg flex flex-col gap-2">
-      <div className="flex items-center justify-between pb-1 border-b border-slate-800">
+    <div className="bg-[#0b101f]/80 backdrop-blur border border-slate-800/80 rounded-2xl p-5 shadow-2xl flex flex-col gap-3">
+      <div className="flex items-center justify-between pb-2 border-b border-slate-800/80">
         <div className="flex items-center gap-2">
           <LineChart className="w-4 h-4 text-blue-400" />
-          <h2 className="text-xs font-bold text-slate-100 tracking-wide uppercase">
+          <h2 className="text-xs font-bold text-slate-100 tracking-wide uppercase font-mono">
             Real-Time Localization Error vs. 5.0m Safety Envelope
           </h2>
         </div>
@@ -100,7 +100,7 @@ export default function PlotsView({ history = [] }) {
         </span>
       </div>
 
-      <div ref={plotContainerRef} className="w-full h-[180px]" />
+      <div ref={plotContainerRef} className="w-full h-[220px]" />
     </div>
   );
 }

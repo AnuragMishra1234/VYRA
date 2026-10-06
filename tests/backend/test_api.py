@@ -121,3 +121,10 @@ def test_results_figures():
     assert len(data) >= 16
     fig01 = next(f for f in data if "fig01" in f["id"])
     assert fig01["url"].startswith("/api/figures/")
+
+
+def test_logo_endpoint():
+    response = client.get("/vyra-logo.png")
+    assert response.status_code == 200
+    assert response.headers["content-type"] == "image/png"
+    assert len(response.content) > 10000

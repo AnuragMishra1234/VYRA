@@ -276,11 +276,13 @@ export default function Hero3D({ onExploreClick, onLaunchPrototype }) {
             <span>GNSS • IMU • DEAD RECKONING • SENSOR FUSION • FORECASTING</span>
           </div>
 
-          {/* Main Branding */}
-          <div className="flex flex-col gap-2">
-            <h1 className="text-6xl sm:text-7xl lg:text-8xl font-black tracking-tight text-white font-mono">
-              VYRA
-            </h1>
+          {/* Main Branding with Official Project Logo */}
+          <div className="flex flex-col gap-3">
+            <img
+              src="/vyra-logo.png"
+              alt="VYRA Logo"
+              className="h-24 sm:h-32 w-auto object-contain filter drop-shadow-2xl self-start"
+            />
             <p className="text-xl sm:text-2xl font-bold text-slate-200 tracking-tight">
               Forecast the failure. <br className="hidden sm:inline" />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-cyan-400 to-emerald-400">

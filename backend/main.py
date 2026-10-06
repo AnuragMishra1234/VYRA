@@ -10,6 +10,7 @@ import logging
 from pathlib import Path
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from backend.routes.health import router as health_router
@@ -66,9 +67,32 @@ async def api_info():
     }
 
 
+@app.get("/vyra-logo.png")
+async def get_vyra_logo():
+    """Serve the official VYRA project logo."""
+    logo_path = repo_root / "frontend" / "public" / "vyra-logo.png"
+    if logo_path.is_file():
+        return FileResponse(logo_path, media_type="image/png")
+    # Fallback to src/assets if public is not present
+    fallback_path = repo_root / "frontend" / "src" / "assets" / "vyra-logo.png"
+    if fallback_path.is_file():
+        return FileResponse(fallback_path, media_type="image/png")
+    return {"error": "Logo file not found"}
+
+
+import shutil
+
 # Mount built frontend application if available
 frontend_dist = repo_root / "frontend" / "dist"
 if frontend_dist.is_dir():
+    # Sync logo into dist for standalone static serving
+    public_logo = repo_root / "frontend" / "public" / "vyra-logo.png"
+    dist_logo = frontend_dist / "vyra-logo.png"
+    if public_logo.is_file() and not dist_logo.is_file():
+        try:
+            shutil.copy2(public_logo, dist_logo)
+        except Exception:
+            pass
     app.mount("/", StaticFiles(directory=str(frontend_dist), html=True), name="frontend")
     logger.info("Mounted frontend static application from %s", frontend_dist)
 else:

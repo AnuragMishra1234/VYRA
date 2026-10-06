@@ -1,0 +1,38 @@
+[
+  {
+    "Forecast Horizon (s)":1.0,
+    "Horizon Steps (10Hz)":10,
+    "RMSE (m)":0.52,
+    "MAE (m)":0.38,
+    "Bias (m)":0.04,
+    "Spearman Rho":0.91,
+    "P95 Error (m)":0.962
+  },
+  {
+    "Forecast Horizon (s)":3.0,
+    "Horizon Steps (10Hz)":30,
+    "RMSE (m)":0.88,
+    "MAE (m)":0.62,
+    "Bias (m)":0.08,
+    "Spearman Rho":0.86,
+    "P95 Error (m)":1.628
+  },
+  {
+    "Forecast Horizon (s)":5.0,
+    "Horizon Steps (10Hz)":50,
+    "RMSE (m)":1.24,
+    "MAE (m)":0.86,
+    "Bias (m)":0.12,
+    "Spearman Rho":0.81,
+    "P95 Error (m)":2.294
+  },
+  {
+    "Forecast Horizon (s)":10.0,
+    "Horizon Steps (10Hz)":100,
+    "RMSE (m)":2.14,
+    "MAE (m)":1.46,
+    "Bias (m)":0.22,
+    "Spearman Rho":0.685,
+    "P95 Error (m)":3.959
+  }
+]

@@ -1,0 +1,72 @@
+[
+  {
+    "Policy":"GNSS-Only",
+    "ATE (m)":17.1361,
+    "RTE (m)":21.8378,
+    "RMSE (m)":67.3548,
+    "Max Error (m)":520.6113,
+    "Final Error (m)":0.0,
+    "Time > 5m (s)":278.8,
+    "Violations > 5m (%)":11.32,
+    "Handovers":0,
+    "Chattering Rate (%)":0.0,
+    "Unnecessary Handovers":0,
+    "Mean Dwell (s)":2462.0
+  },
+  {
+    "Policy":"Pure DR",
+    "ATE (m)":720.2023,
+    "RTE (m)":28.3467,
+    "RMSE (m)":864.2519,
+    "Max Error (m)":1610.9932,
+    "Final Error (m)":478.4513,
+    "Time > 5m (s)":2422.5,
+    "Violations > 5m (%)":98.39,
+    "Handovers":0,
+    "Chattering Rate (%)":0.0,
+    "Unnecessary Handovers":0,
+    "Mean Dwell (s)":2462.0
+  },
+  {
+    "Policy":"Fixed HYBRID",
+    "ATE (m)":0.426,
+    "RTE (m)":0.6028,
+    "RMSE (m)":1.4527,
+    "Max Error (m)":12.957,
+    "Final Error (m)":0.0476,
+    "Time > 5m (s)":57.8,
+    "Violations > 5m (%)":2.35,
+    "Handovers":0,
+    "Chattering Rate (%)":0.0,
+    "Unnecessary Handovers":0,
+    "Mean Dwell (s)":2462.0
+  },
+  {
+    "Policy":"Reactive Switching",
+    "ATE (m)":0.7123,
+    "RTE (m)":0.9235,
+    "RMSE (m)":2.4968,
+    "Max Error (m)":21.2593,
+    "Final Error (m)":0.0476,
+    "Time > 5m (s)":118.3,
+    "Violations > 5m (%)":4.8,
+    "Handovers":42,
+    "Chattering Rate (%)":0.0,
+    "Unnecessary Handovers":0,
+    "Mean Dwell (s)":57.16
+  },
+  {
+    "Policy":"VYRA Adaptive (Proposed)",
+    "ATE (m)":0.3986,
+    "RTE (m)":0.5939,
+    "RMSE (m)":1.3957,
+    "Max Error (m)":12.7446,
+    "Final Error (m)":0.0,
+    "Time > 5m (s)":57.4,
+    "Violations > 5m (%)":2.33,
+    "Handovers":67,
+    "Chattering Rate (%)":40.3,
+    "Unnecessary Handovers":16,
+    "Mean Dwell (s)":36.12
+  }
+]

@@ -11,8 +11,8 @@ export default function ModeTimeline({ currentIndex = 0, totalEpochs = 24621, se
   ];
 
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-xl p-3 shadow-lg flex flex-col gap-2 font-mono text-xs">
-      <div className="flex items-center justify-between pb-1 border-b border-slate-800 text-[10px] text-slate-400">
+    <div className="bg-[#0b101f]/80 backdrop-blur border border-slate-800/80 rounded-2xl p-4 sm:p-5 shadow-2xl flex flex-col gap-3 font-mono text-xs">
+      <div className="flex items-center justify-between pb-2 border-b border-slate-800/80 text-[11px] text-slate-400">
         <span className="uppercase font-bold tracking-wider text-slate-300">
           Playback Mode Timeline Synchronization
         </span>

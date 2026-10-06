@@ -93,10 +93,14 @@ results/raw/*
 !results/raw/.gitkeep
 results/processed/*
 !results/processed/.gitkeep
+!results/processed/v_s3a_playback_cache.parquet
+!results/processed/phase5_master_results.json
 results/figures/*
 !results/figures/.gitkeep
+!results/figures/*.png
 results/tables/*
 !results/tables/.gitkeep
+!results/tables/*.json
 
 # IDEs & OS Files
 .idea/

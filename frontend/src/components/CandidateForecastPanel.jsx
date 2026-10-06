@@ -65,7 +65,7 @@ export default function CandidateForecastPanel({ telemetry }) {
   };
 
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 shadow-lg flex flex-col gap-3">
+    <div className="bg-[#0b101f]/80 backdrop-blur border border-slate-800/80 rounded-2xl p-5 sm:p-6 shadow-2xl flex flex-col gap-4">
       {/* Panel Header */}
       <div className="flex items-center justify-between pb-2 border-b border-slate-800">
         <div className="flex items-center gap-2">

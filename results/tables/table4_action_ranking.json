@@ -1,0 +1,30 @@
+[
+  {
+    "Forecasting Model":"Persistence",
+    "Top-1 Action Match (%)":1.32,
+    "Pairwise Accuracy (%)":0.0,
+    "Mean Regret (m)":1.268,
+    "Excess Error vs Oracle (m)":1.268
+  },
+  {
+    "Forecasting Model":"Ridge",
+    "Top-1 Action Match (%)":76.82,
+    "Pairwise Accuracy (%)":87.66,
+    "Mean Regret (m)":0.351,
+    "Excess Error vs Oracle (m)":0.351
+  },
+  {
+    "Forecasting Model":"Random Forest",
+    "Top-1 Action Match (%)":98.17,
+    "Pairwise Accuracy (%)":96.84,
+    "Mean Regret (m)":0.022,
+    "Excess Error vs Oracle (m)":0.022
+  },
+  {
+    "Forecasting Model":"Xgboost",
+    "Top-1 Action Match (%)":95.43,
+    "Pairwise Accuracy (%)":95.74,
+    "Mean Regret (m)":0.056,
+    "Excess Error vs Oracle (m)":0.056
+  }
+]

@@ -35,14 +35,16 @@ export default function LandingNavbar({ activeView, onViewChange, onOpenResearch
         <div className="flex items-center gap-3">
           <button
             onClick={() => onViewChange('landing')}
-            className="flex items-center gap-2.5 text-left group"
+            className="flex items-center gap-3 text-left group"
           >
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center font-black text-sm text-white shadow-lg shadow-blue-500/20 group-hover:scale-105 transition">
-              V
-            </div>
+            <img
+              src="/vyra-logo.png"
+              alt="VYRA Logo"
+              className="h-9 sm:h-10 w-auto object-contain filter drop-shadow group-hover:scale-105 transition"
+            />
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-base font-bold tracking-tight text-white group-hover:text-blue-400 transition font-mono">
+                <span className="text-base font-bold tracking-tight text-white group-hover:text-cyan-400 transition font-mono">
                   VYRA
                 </span>
                 <span className="text-[10px] uppercase font-mono px-1.5 py-0.5 rounded bg-blue-950/80 border border-blue-800/80 text-blue-400">
