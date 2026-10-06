@@ -1,0 +1,287 @@
+{
+  "experiments": [
+    {
+      "experiment_id": "EXP-01-CORE-COMP",
+      "timestamp_utc": "2026-10-06T03:45:37.849381+00:00",
+      "phase": "Phase 5",
+      "scenario_name": "Controlled Gradual Degradation & Multi-Duration Outage",
+      "outage_duration_s": null,
+      "degradation_type": "gradual_and_sudden",
+      "dataset_version": "IO-VNBD-v1.0",
+      "trajectory_ids": [
+        "V-S3a"
+      ],
+      "model_version": "xgb-v1.0",
+      "policy_version": "vyra-v1.0",
+      "random_seed": 42,
+      "configuration": {},
+      "metrics_summary": {
+        "GNSS-Only": {
+          "ATE": 17.1361,
+          "Viol_5m": 11.32
+        },
+        "Pure DR": {
+          "ATE": 720.2023,
+          "Viol_5m": 98.39
+        },
+        "Fixed HYBRID": {
+          "ATE": 0.426,
+          "Viol_5m": 2.35
+        },
+        "Reactive Switching": {
+          "ATE": 0.426,
+          "Viol_5m": 2.35
+        },
+        "VYRA Adaptive (Proposed)": {
+          "ATE": 2.2771,
+          "Viol_5m": 3.24
+        }
+      },
+      "result_artifacts": [
+        "results/tables/table1_navigation_comparison.json"
+      ]
+    },
+    {
+      "experiment_id": "EXP-02-OUTAGE-SWEEP",
+      "timestamp_utc": "2026-10-06T03:45:37.860587+00:00",
+      "phase": "Phase 5",
+      "scenario_name": "Outage Duration Parameter Sweep",
+      "outage_duration_s": null,
+      "degradation_type": "variable_outage_duration",
+      "dataset_version": "IO-VNBD-v1.0",
+      "trajectory_ids": [
+        "V-S3a"
+      ],
+      "model_version": "xgb-v1.0",
+      "policy_version": "vyra-v1.0",
+      "random_seed": 42,
+      "configuration": {},
+      "metrics_summary": {
+        "2.0": {
+          "gnss_only": {
+            "ate": 4.724,
+            "max": 36.086,
+            "viol": 26.92
+          },
+          "pure_dr": {
+            "ate": 346.189,
+            "max": 898.298,
+            "viol": 75.0
+          },
+          "fixed_hybrid": {
+            "ate": 0.364,
+            "max": 1.148,
+            "viol": 0.0
+          },
+          "reactive": {
+            "ate": 0.364,
+            "max": 1.148,
+            "viol": 0.0
+          },
+          "vyra_adaptive": {
+            "ate": 2.652,
+            "max": 36.086,
+            "viol": 10.99
+          }
+        },
+        "5.0": {
+          "gnss_only": {
+            "ate": 11.075,
+            "max": 71.975,
+            "viol": 45.45
+          },
+          "pure_dr": {
+            "ate": 392.008,
+            "max": 1002.472,
+            "viol": 100.0
+          },
+          "fixed_hybrid": {
+            "ate": 0.422,
+            "max": 1.315,
+            "viol": 0.0
+          },
+          "reactive": {
+            "ate": 0.422,
+            "max": 1.315,
+            "viol": 0.0
+          },
+          "vyra_adaptive": {
+            "ate": 1.183,
+            "max": 8.971,
+            "viol": 2.48
+          }
+        },
+        "10.0": {
+          "gnss_only": {
+            "ate": 35.636,
+            "max": 253.79,
+            "viol": 62.13
+          },
+          "pure_dr": {
+            "ate": 432.106,
+            "max": 987.21,
+            "viol": 100.0
+          },
+          "fixed_hybrid": {
+            "ate": 0.861,
+            "max": 3.943,
+            "viol": 0.0
+          },
+          "reactive": {
+            "ate": 0.861,
+            "max": 3.943,
+            "viol": 0.0
+          },
+          "vyra_adaptive": {
+            "ate": 20.11,
+            "max": 253.79,
+            "viol": 17.4
+          }
+        },
+        "20.0": {
+          "gnss_only": {
+            "ate": 104.119,
+            "max": 381.015,
+            "viol": 76.01
+          },
+          "pure_dr": {
+            "ate": 473.994,
+            "max": 836.817,
+            "viol": 100.0
+          },
+          "fixed_hybrid": {
+            "ate": 1.481,
+            "max": 6.892,
+            "viol": 3.78
+          },
+          "reactive": {
+            "ate": 1.481,
+            "max": 6.892,
+            "viol": 3.78
+          },
+          "vyra_adaptive": {
+            "ate": 29.126,
+            "max": 381.015,
+            "viol": 18.08
+          }
+        },
+        "30.0": {
+          "gnss_only": {
+            "ate": 187.053,
+            "max": 520.611,
+            "viol": 82.28
+          },
+          "pure_dr": {
+            "ate": 536.924,
+            "max": 812.626,
+            "viol": 100.0
+          },
+          "fixed_hybrid": {
+            "ate": 3.231,
+            "max": 12.745,
+            "viol": 26.62
+          },
+          "reactive": {
+            "ate": 3.231,
+            "max": 12.745,
+            "viol": 26.62
+          },
+          "vyra_adaptive": {
+            "ate": 6.197,
+            "max": 389.598,
+            "viol": 28.98
+          }
+        }
+      },
+      "result_artifacts": [
+        "results/tables/table2_outage_duration_sweep.json"
+      ]
+    },
+    {
+      "experiment_id": "EXP-05-ABLATIONS",
+      "timestamp_utc": "2026-10-06T03:54:49.882332+00:00",
+      "phase": "Phase 5",
+      "scenario_name": "Full Component Ablation Analysis",
+      "outage_duration_s": null,
+      "degradation_type": "controlled_degradation",
+      "dataset_version": "IO-VNBD-v1.0",
+      "trajectory_ids": [
+        "V-S3a"
+      ],
+      "model_version": "xgb-v1.0",
+      "policy_version": "vyra-v1.0",
+      "random_seed": 42,
+      "configuration": {},
+      "metrics_summary": {
+        "Ablation A: Full VYRA": {
+          "ATE": 2.2771,
+          "Viol_5m": 3.24
+        },
+        "Ablation B: No GNSS Degradation Prediction": {
+          "ATE": 2.1105,
+          "Viol_5m": 3.29
+        },
+        "Ablation C: No DR Uncertainty": {
+          "ATE": 2.2774,
+          "Viol_5m": 3.24
+        },
+        "Ablation D: No DR Survivability": {
+          "ATE": 2.2707,
+          "Viol_5m": 3.21
+        },
+        "Ablation E: No Action Conditioning": {
+          "ATE": 0.426,
+          "Viol_5m": 2.35
+        },
+        "Ablation F: No Forecast Engine (Reactive Only)": {
+          "ATE": 0.7122,
+          "Viol_5m": 4.8
+        },
+        "Ablation G: No Switching Penalty / Hysteresis": {
+          "ATE": 2.3206,
+          "Viol_5m": 3.25
+        }
+      },
+      "result_artifacts": [
+        "results/tables/table5_ablation_study.json"
+      ]
+    },
+    {
+      "experiment_id": "EXP-07-STAT-TESTS",
+      "timestamp_utc": "2026-10-06T04:11:04.545462+00:00",
+      "phase": "Phase 5",
+      "scenario_name": "Paired Event-Level Statistical Hypothesis Testing",
+      "outage_duration_s": null,
+      "degradation_type": "paired_event_analysis",
+      "dataset_version": "IO-VNBD-v1.0",
+      "trajectory_ids": [
+        "V-S3a"
+      ],
+      "model_version": "xgb-v1.0",
+      "policy_version": "vyra-v1.0",
+      "random_seed": 42,
+      "configuration": {},
+      "metrics_summary": {
+        "VYRA vs GNSS-Only": {
+          "Cohens_d": 0.7766,
+          "Significant": "Yes"
+        },
+        "VYRA vs Pure DR": {
+          "Cohens_d": 1.404,
+          "Significant": "Yes"
+        },
+        "VYRA vs Fixed HYBRID": {
+          "Cohens_d": -0.3708,
+          "Significant": "Yes"
+        },
+        "VYRA vs Reactive Switching": {
+          "Cohens_d": -0.3708,
+          "Significant": "Yes"
+        }
+      },
+      "result_artifacts": [
+        "results/tables/table7_statistical_significance.json"
+      ]
+    }
+  ]
+}
