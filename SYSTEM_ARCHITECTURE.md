@@ -146,3 +146,51 @@
 - All units adhere to SI standards: meters ($m$), seconds ($s$), radians ($rad$), meters per second ($m/s$).
 - World frame: Local Cartesian East-North-Up (ENU) anchored to the first valid trajectory GNSS fix.
 - Body frame: Standard vehicle coordinate frame (X: Right, Y: Forward, Z: Up or X: Forward, Y: Right, Z: Down as defined by dataset specification).
+
+---
+
+## 4. Phase 6 System Integration, Replay Engine & Research Dashboard
+
+### 4.1. Precomputed Telemetry Cache (`results/processed/v_s3a_playback_cache.parquet`)
+To eliminate runtime model inference latency and ensure bit-level reproducibility during demonstration, the evaluated trajectory `V-S3a` (24,621 epochs, 2,462.0 s driving duration) is serialized into a columnar Parquet cache containing 30 columns:
+- Epoch temporal indices: `index`, `timestamp`, `relative_time_s`.
+- Scenario state flags: `scenario`, `is_outage`, `is_degraded`.
+- Reliability & Quality signals: composite $Q_t$, degradation probability $P(\text{degradation} \mid s_t)$.
+- Inertial safety indicators: DR horizontal uncertainty $1\sigma$, survivability duration $T_{\text{surv}}$.
+- Action-conditioned forecasts: $\widehat{e}_{\max}(\text{GNSS})$, $\widehat{e}_{\max}(\text{HYBRID})$, $\widehat{e}_{\max}(\text{DR})$ at $\tau = 3.0\text{s}$.
+- Adaptive policy outputs: `selected_mode`, formal `decision_reason`.
+- Geodetic coordinates (WGS-84): `gt_lat`, `gt_lon` (labeled **OFFLINE REFERENCE**), `gnss_lat`, `gnss_lon`, `vyra_lat`, `vyra_lon`, `hybrid_lat`, `hybrid_lon`, `dr_lat`, `dr_lon`.
+- Local ENU Cartesians: `vyra_e`, `vyra_n`, `gt_e`, `gt_n`.
+
+### 4.2. Backend Architecture (`backend/`)
+- **FastAPI Core (`backend/main.py`):**
+  - High-performance asynchronous REST and WebSocket server.
+  - CORS middleware supporting Vite development servers and external clients.
+  - Static figure serving at `/api/figures/*` and static production build serving at `/`.
+- **Services:**
+  - `PlaybackEngine`: In-memory numpy array indexing ($< 0.01\text{ ms}$ query latency), state machine (`playing`, `paused`, `stopped`), transport controls (`play`, `pause`, `step`, `reset`, `seek`, `speed`), and an asynchronous broadcast loop.
+  - `ResultsService`: In-memory caching and retrieval of publication Tables 1–8 and figure metadata.
+  - `TrajectoryService`: Benchmark trajectory catalog discovery and WGS-84 boundary indexing.
+- **API Endpoints:**
+  - `GET /api/health`: Health status, cache verification, and epoch counts.
+  - `GET /api/playback/state`: Instantaneous engine status and telemetry snapshot.
+  - `POST /api/playback/control`: Dispatches transport actions (`play`, `pause`, `step`, `seek`, `speed`).
+  - `GET /api/playback/telemetry/{index}`: Exact epoch lookup.
+  - `WS /api/playback/stream`: Bidirectional WebSocket connection broadcasting telemetry at $10\text{ Hz} \times \text{speed\_multiplier}$.
+  - `GET /api/results/master`: Precomputed master results bundle (Tables 1–8).
+  - `GET /api/results/tables/{id}`: Individual publication table queries.
+  - `GET /api/results/figures`: Catalog of 16 publication-grade figures.
+  - `GET /api/trajectories/{id}/paths`: Downsampled polyline coordinates for map layers.
+
+### 4.3. Research Dashboard Frontend (`frontend/`)
+- **Architecture:** Single-page application built with React 18, Vite 6, Tailwind CSS, Leaflet, and Plotly.js.
+- **Key Visual Components:**
+  - `Header`: Mode badges (`GNSS`, `HYBRID`, `DR`), scenario indicators (`NORMAL`, `DEGRADED`, `OUTAGE (SOFTWARE-SIMULATED)`, `RECOVERY`), WebSocket liveness, and research evidence button.
+  - `TransportBar`: Play/pause, step backward/forward, reset, speed multipliers ($0.5\times, 1.0\times, 2.0\times, 5.0\times, 10.0\times$), and interactive trajectory timeline seek bar.
+  - `MapView`: High-contrast CartoDB Dark Matter Leaflet map displaying real geodetic coordinates, dynamic vehicle position marker, camera tracking, and layer toggles for Offline Reference GT, VYRA Adaptive, Fixed HYBRID, Raw GNSS, and Pure DR.
+  - `CandidateForecastPanel`: The core VYRA contribution visualizer showing 3 candidate cards for $\{ \text{GNSS}, \text{HYBRID}, \text{DR} \}$, displaying predicted future error $\widehat{e}_{t+\tau}(A)$, visual safety margin bars against the $5.0\text{ m}$ threshold, disqualification banners, policy winner highlight, and formal decision rationale.
+  - `TelemetryMonitor`: Live numeric readouts and visual gauges for GNSS Quality $Q_t$, $P(\text{degradation})$, DR uncertainty $1\sigma$, DR survivability $T_{\text{surv}}$, and instantaneous horizontal error $e_t$.
+  - `PlotsView`: Interactive Plotly time-series plot displaying real-time tracking error versus the $5.0\text{ m}$ safety envelope with outage event highlights.
+  - `ResearchModal`: Full-screen tabbed dialog providing complete interactive access to validated experimental Tables 1, 2, 5, 7, and 8, as well as a full gallery of all 16 publication figures.
+- **Zero Mock Policy:** All telemetry values originate directly from validated backend parquet and json outputs. Ground truth is strictly designated as **OFFLINE REFERENCE**.
+
