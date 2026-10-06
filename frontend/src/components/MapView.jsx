@@ -1,12 +1,16 @@
 import React, { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
-import { Layers, Crosshair, MapPin } from 'lucide-react';
+import { Layers, Crosshair, MapPin, Globe } from 'lucide-react';
 
 export default function MapView({ pathsData, telemetry }) {
   const mapContainerRef = useRef(null);
   const mapInstanceRef = useRef(null);
+  const baseTileLayerRef = useRef(null);
   const markerRef = useRef(null);
   const polylinesRef = useRef({});
+
+  // Base map style (dark, satellite, standard) - None require an API key!
+  const [baseMapStyle, setBaseMapStyle] = useState('dark');
 
   // Layer visibility state
   const [layers, setLayers] = useState({
@@ -31,17 +35,11 @@ export default function MapView({ pathsData, telemetry }) {
         attributionControl: false,
       });
 
-      // CartoDB Dark Matter tiles (open access, sleek dark theme for navigation research)
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-        maxZoom: 20,
-        subdomains: 'abcd',
-      }).addTo(map);
-
       L.control.zoom({ position: 'bottomright' }).addTo(map);
 
       // Attribution
       L.control.attribution({ position: 'bottomleft', prefix: false })
-        .addAttribution('&copy; OpenStreetMap contributors &copy; CARTO')
+        .addAttribution('&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> contributors')
         .addTo(map);
 
       mapInstanceRef.current = map;
@@ -55,6 +53,46 @@ export default function MapView({ pathsData, telemetry }) {
       }
     };
   }, []);
+
+  // Switch Base Tile Layer (100% Free, Zero API Keys Required)
+  useEffect(() => {
+    const map = mapInstanceRef.current;
+    if (!map) return;
+
+    if (baseTileLayerRef.current) {
+      map.removeLayer(baseTileLayerRef.current);
+    }
+
+    let tileUrl = '';
+    let options = {};
+
+    if (baseMapStyle === 'satellite') {
+      // Esri World Imagery: High-res satellite tiles, 100% free, no API key needed
+      tileUrl = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
+      options = {
+        maxZoom: 19,
+        attribution: 'Tiles &copy; Esri &mdash; Source: Esri, USGS, AeroGRID',
+      };
+    } else if (baseMapStyle === 'osm') {
+      // Standard OpenStreetMap tiles, 100% free, no API key needed
+      tileUrl = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+      options = {
+        maxZoom: 19,
+        attribution: '&copy; OpenStreetMap contributors',
+      };
+    } else {
+      // Dark Mode: Standard OpenStreetMap filtered with high-contrast dark theme (no API key)
+      tileUrl = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+      options = {
+        maxZoom: 19,
+        className: 'dark-tiles',
+        attribution: '&copy; OpenStreetMap contributors',
+      };
+    }
+
+    baseTileLayerRef.current = L.tileLayer(tileUrl, options).addTo(map);
+    baseTileLayerRef.current.bringToBack();
+  }, [baseMapStyle]);
 
   // Update polylines when pathsData arrives
   useEffect(() => {
@@ -70,9 +108,9 @@ export default function MapView({ pathsData, telemetry }) {
     // 1. Offline Reference Ground Truth
     if (p.offline_reference_gt && p.offline_reference_gt.length > 0) {
       polylinesRef.current.gt = L.polyline(p.offline_reference_gt, {
-        color: '#e2e8f0', // bright slate/white
+        color: '#f8fafc', // bright white
         weight: 3.5,
-        opacity: 0.9,
+        opacity: 0.95,
         dashArray: '6, 6',
       });
       if (layers.gt) polylinesRef.current.gt.addTo(map);
@@ -96,7 +134,7 @@ export default function MapView({ pathsData, telemetry }) {
       polylinesRef.current.hybrid = L.polyline(p.hybrid, {
         color: '#10b981', // emerald 500
         weight: 2.5,
-        opacity: 0.8,
+        opacity: 0.85,
       });
       if (layers.hybrid) polylinesRef.current.hybrid.addTo(map);
     }
@@ -106,7 +144,7 @@ export default function MapView({ pathsData, telemetry }) {
       polylinesRef.current.gnss = L.polyline(p.gnss, {
         color: '#38bdf8', // sky blue
         weight: 2,
-        opacity: 0.65,
+        opacity: 0.7,
       });
       if (layers.gnss) polylinesRef.current.gnss.addTo(map);
     }
@@ -116,7 +154,7 @@ export default function MapView({ pathsData, telemetry }) {
       polylinesRef.current.dr = L.polyline(p.dr, {
         color: '#f59e0b', // amber
         weight: 2,
-        opacity: 0.65,
+        opacity: 0.7,
       });
       if (layers.dr) polylinesRef.current.dr.addTo(map);
     }
@@ -188,66 +226,105 @@ export default function MapView({ pathsData, telemetry }) {
       <div ref={mapContainerRef} className="w-full h-full flex-1 z-0" />
 
       {/* Map Control Bar Overlay */}
-      <div className="absolute top-3 left-3 z-10 bg-slate-900/90 backdrop-blur border border-slate-800 rounded-lg p-2.5 shadow-xl text-xs flex flex-col gap-2">
-        <div className="flex items-center gap-1.5 font-bold text-slate-200 uppercase tracking-wider text-[11px] pb-1 border-b border-slate-800">
-          <Layers className="w-3.5 h-3.5 text-blue-400" />
-          <span>Trajectory Layers</span>
+      <div className="absolute top-3 left-3 z-10 bg-slate-900/90 backdrop-blur border border-slate-800 rounded-lg p-2.5 shadow-xl text-xs flex flex-col gap-2.5">
+        {/* Basemap Style Switcher (Zero API key required) */}
+        <div>
+          <div className="flex items-center gap-1.5 font-bold text-slate-200 uppercase tracking-wider text-[11px] pb-1 border-b border-slate-800">
+            <Globe className="w-3.5 h-3.5 text-blue-400" />
+            <span>Map Style</span>
+          </div>
+          <div className="grid grid-cols-3 gap-1 mt-1.5 bg-slate-950/60 p-1 rounded border border-slate-800">
+            <button
+              onClick={() => setBaseMapStyle('dark')}
+              className={`px-2 py-0.5 rounded text-[10px] font-medium transition ${
+                baseMapStyle === 'dark' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              Dark
+            </button>
+            <button
+              onClick={() => setBaseMapStyle('satellite')}
+              className={`px-2 py-0.5 rounded text-[10px] font-medium transition ${
+                baseMapStyle === 'satellite' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              Satellite
+            </button>
+            <button
+              onClick={() => setBaseMapStyle('osm')}
+              className={`px-2 py-0.5 rounded text-[10px] font-medium transition ${
+                baseMapStyle === 'osm' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              Street
+            </button>
+          </div>
         </div>
 
-        <label className="flex items-center gap-2 cursor-pointer text-slate-200 hover:text-white">
-          <input
-            type="checkbox"
-            checked={layers.gt}
-            onChange={() => toggleLayer('gt')}
-            className="rounded bg-slate-800 border-slate-700 text-slate-200 focus:ring-0"
-          />
-          <span className="w-3 h-0.5 border-t border-dashed border-white inline-block"></span>
-          <span className="font-semibold text-slate-100">Ground Truth (Offline Reference)</span>
-        </label>
+        {/* Trajectory Layers */}
+        <div>
+          <div className="flex items-center gap-1.5 font-bold text-slate-200 uppercase tracking-wider text-[11px] pb-1 border-b border-slate-800">
+            <Layers className="w-3.5 h-3.5 text-blue-400" />
+            <span>Trajectory Layers</span>
+          </div>
 
-        <label className="flex items-center gap-2 cursor-pointer text-slate-300 hover:text-white">
-          <input
-            type="checkbox"
-            checked={layers.vyra}
-            onChange={() => toggleLayer('vyra')}
-            className="rounded bg-slate-800 border-slate-700 text-indigo-500 focus:ring-0"
-          />
-          <span className="w-3 h-1 bg-indigo-400 rounded-full inline-block"></span>
-          <span>VYRA Adaptive (Proposed)</span>
-        </label>
+          <div className="flex flex-col gap-1.5 mt-1.5">
+            <label className="flex items-center gap-2 cursor-pointer text-slate-200 hover:text-white">
+              <input
+                type="checkbox"
+                checked={layers.gt}
+                onChange={() => toggleLayer('gt')}
+                className="rounded bg-slate-800 border-slate-700 text-slate-200 focus:ring-0"
+              />
+              <span className="w-3 h-0.5 border-t border-dashed border-white inline-block"></span>
+              <span className="font-semibold text-slate-100">Ground Truth (Offline Reference)</span>
+            </label>
 
-        <label className="flex items-center gap-2 cursor-pointer text-slate-300 hover:text-white">
-          <input
-            type="checkbox"
-            checked={layers.hybrid}
-            onChange={() => toggleLayer('hybrid')}
-            className="rounded bg-slate-800 border-slate-700 text-emerald-500 focus:ring-0"
-          />
-          <span className="w-3 h-1 bg-emerald-500 rounded-full inline-block"></span>
-          <span>Fixed HYBRID (Continuous EKF)</span>
-        </label>
+            <label className="flex items-center gap-2 cursor-pointer text-slate-300 hover:text-white">
+              <input
+                type="checkbox"
+                checked={layers.vyra}
+                onChange={() => toggleLayer('vyra')}
+                className="rounded bg-slate-800 border-slate-700 text-indigo-500 focus:ring-0"
+              />
+              <span className="w-3 h-1 bg-indigo-400 rounded-full inline-block"></span>
+              <span>VYRA Adaptive (Proposed)</span>
+            </label>
 
-        <label className="flex items-center gap-2 cursor-pointer text-slate-400 hover:text-slate-200">
-          <input
-            type="checkbox"
-            checked={layers.gnss}
-            onChange={() => toggleLayer('gnss')}
-            className="rounded bg-slate-800 border-slate-700 text-sky-400 focus:ring-0"
-          />
-          <span className="w-3 h-1 bg-sky-400 rounded-full inline-block"></span>
-          <span>Raw GNSS Fix</span>
-        </label>
+            <label className="flex items-center gap-2 cursor-pointer text-slate-300 hover:text-white">
+              <input
+                type="checkbox"
+                checked={layers.hybrid}
+                onChange={() => toggleLayer('hybrid')}
+                className="rounded bg-slate-800 border-slate-700 text-emerald-500 focus:ring-0"
+              />
+              <span className="w-3 h-1 bg-emerald-500 rounded-full inline-block"></span>
+              <span>Fixed HYBRID (Continuous EKF)</span>
+            </label>
 
-        <label className="flex items-center gap-2 cursor-pointer text-slate-400 hover:text-slate-200">
-          <input
-            type="checkbox"
-            checked={layers.dr}
-            onChange={() => toggleLayer('dr')}
-            className="rounded bg-slate-800 border-slate-700 text-amber-500 focus:ring-0"
-          />
-          <span className="w-3 h-1 bg-amber-500 rounded-full inline-block"></span>
-          <span>Pure Inertial DR</span>
-        </label>
+            <label className="flex items-center gap-2 cursor-pointer text-slate-400 hover:text-slate-200">
+              <input
+                type="checkbox"
+                checked={layers.gnss}
+                onChange={() => toggleLayer('gnss')}
+                className="rounded bg-slate-800 border-slate-700 text-sky-400 focus:ring-0"
+              />
+              <span className="w-3 h-1 bg-sky-400 rounded-full inline-block"></span>
+              <span>Raw GNSS Fix</span>
+            </label>
+
+            <label className="flex items-center gap-2 cursor-pointer text-slate-400 hover:text-slate-200">
+              <input
+                type="checkbox"
+                checked={layers.dr}
+                onChange={() => toggleLayer('dr')}
+                className="rounded bg-slate-800 border-slate-700 text-amber-500 focus:ring-0"
+              />
+              <span className="w-3 h-1 bg-amber-500 rounded-full inline-block"></span>
+              <span>Pure Inertial DR</span>
+            </label>
+          </div>
+        </div>
       </div>
 
       {/* Recenter & Follow Toggle Overlay */}
