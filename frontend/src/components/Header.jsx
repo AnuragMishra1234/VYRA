@@ -131,8 +131,8 @@ export default function Header({
               </>
             ) : (
               <>
-                <WifiOff className="w-3 h-3 text-rose-400" />
-                <span className="text-rose-400 font-mono">RECONNECTING</span>
+                <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
+                <span className="text-cyan-400 font-mono">STANDALONE REPLAY</span>
               </>
             )}
           </div>

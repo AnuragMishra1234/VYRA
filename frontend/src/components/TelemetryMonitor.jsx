@@ -1,24 +1,25 @@
 import React from 'react';
 import { Gauge, Radio, Shield, Hourglass, AlertOctagon, Navigation } from 'lucide-react';
 
+const numVal = (val, def = 0) => (typeof val === 'number' && !isNaN(val) ? val : def);
+const fmt = (val, digits = 3) => numVal(val).toFixed(digits);
+
 export default function TelemetryMonitor({ telemetry }) {
   if (!telemetry) {
     return (
-      <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 text-slate-500 text-center">
+      <div className="bg-[#0b101f]/80 border border-slate-800 rounded-2xl p-6 text-slate-500 font-mono text-xs text-center">
         Telemetry loading...
       </div>
     );
   }
 
-  const {
-    gnss_quality,
-    degradation_prob,
-    dr_uncertainty_std_m,
-    dr_survivability_s,
-    current_error_m,
-    is_outage,
-    is_degraded,
-  } = telemetry;
+  const gnss_quality = numVal(telemetry.gnss_quality, 1.0);
+  const degradation_prob = numVal(telemetry.degradation_prob, 0.0);
+  const dr_uncertainty_std_m = numVal(telemetry.dr_uncertainty_std_m, 0.5);
+  const dr_survivability_s = numVal(telemetry.dr_survivability_s, 10.0);
+  const current_error_m = numVal(telemetry.current_error_m, 0.0);
+  const is_outage = Boolean(telemetry.is_outage);
+  const is_degraded = Boolean(telemetry.is_degraded);
 
   const getQualityColor = (q) => {
     if (q >= 0.7) return 'text-emerald-400';
@@ -39,7 +40,7 @@ export default function TelemetryMonitor({ telemetry }) {
         <div className="flex items-center gap-2">
           <Gauge className="w-4 h-4 text-blue-400" />
           <h2 className="text-sm font-bold text-slate-100 tracking-wide uppercase">
-            Live Telemetry & Diagnostics
+            Live Telemetry &amp; Diagnostics
           </h2>
         </div>
         {is_outage ? (
@@ -72,7 +73,7 @@ export default function TelemetryMonitor({ telemetry }) {
             </span>
           </div>
           <div className="text-lg font-mono font-bold text-slate-100 mt-1">
-            {gnss_quality.toFixed(3)}
+            {fmt(gnss_quality, 3)}
           </div>
           <div className="w-full h-1.5 bg-slate-800 rounded-full mt-1.5 overflow-hidden">
             <div
@@ -94,7 +95,7 @@ export default function TelemetryMonitor({ telemetry }) {
             </span>
           </div>
           <div className="text-lg font-mono font-bold text-slate-100 mt-1">
-            {degradation_prob.toFixed(3)}
+            {fmt(degradation_prob, 3)}
           </div>
           <div className="w-full h-1.5 bg-slate-800 rounded-full mt-1.5 overflow-hidden">
             <div
@@ -113,7 +114,7 @@ export default function TelemetryMonitor({ telemetry }) {
             <span className="font-mono text-slate-400 text-[10px]">Strapdown</span>
           </div>
           <div className="text-lg font-mono font-bold text-amber-400 mt-1">
-            {dr_uncertainty_std_m.toFixed(3)} <span className="text-xs text-slate-400">m</span>
+            {fmt(dr_uncertainty_std_m, 3)} <span className="text-xs text-slate-400">m</span>
           </div>
           <div className="text-[10px] text-slate-500 font-mono mt-1">
             3σ Covariance: {(dr_uncertainty_std_m * 3.0).toFixed(2)}m
@@ -130,7 +131,7 @@ export default function TelemetryMonitor({ telemetry }) {
             <span className="font-mono text-slate-400 text-[10px]">Safety Window</span>
           </div>
           <div className="text-lg font-mono font-bold text-slate-100 mt-1">
-            {dr_survivability_s.toFixed(1)} <span className="text-xs text-slate-400">s</span>
+            {fmt(dr_survivability_s, 1)} <span className="text-xs text-slate-400">s</span>
           </div>
           <div className="text-[10px] text-slate-500 font-mono mt-1">
             {dr_survivability_s >= 3.0 ? 'Adequate for 3s Horizon' : 'Warning: High Inertial Drift'}
@@ -157,7 +158,7 @@ export default function TelemetryMonitor({ telemetry }) {
               current_error_m > 5.0 ? 'text-rose-400' : 'text-emerald-400'
             }`}
           >
-            {current_error_m.toFixed(3)} <span className="text-xs text-slate-400">m</span>
+            {fmt(current_error_m, 3)} <span className="text-xs text-slate-400">m</span>
           </div>
           <div className="text-[10px] font-mono text-slate-400">
             {current_error_m <= 5.0 ? 'Within Safety Envelope (<5m)' : 'SAFETY BREACH (>5m)'}

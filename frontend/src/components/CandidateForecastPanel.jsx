@@ -1,32 +1,35 @@
 import React from 'react';
-import { Target, CheckCircle2, AlertTriangle, ShieldX, TrendingDown, Cpu } from 'lucide-react';
+import { Target, CheckCircle2, ShieldX, Cpu } from 'lucide-react';
+
+const numVal = (val, def = 0) => (typeof val === 'number' && !isNaN(val) ? val : def);
+const fmt = (val, digits = 3) => numVal(val).toFixed(digits);
 
 export default function CandidateForecastPanel({ telemetry }) {
   if (!telemetry) {
     return (
-      <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 flex items-center justify-center text-slate-500">
+      <div className="bg-[#0b101f]/80 border border-slate-800 rounded-2xl p-6 text-slate-500 font-mono text-xs text-center">
         Awaiting telemetry stream...
       </div>
     );
   }
 
   const {
-    forecast_gnss,
-    forecast_hybrid,
-    forecast_dr,
-    selected_mode,
-    decision_reason,
-    is_outage,
-    gnss_quality,
-    dr_survivability_s,
+    forecast_gnss = 0,
+    forecast_hybrid = 0,
+    forecast_dr = 0,
+    selected_mode = 'HYBRID',
+    decision_reason = 'NORMAL_EVALUATION',
+    is_outage = false,
+    gnss_quality = 1.0,
+    dr_survivability_s = 10.0,
   } = telemetry;
 
   const candidates = [
     {
       action: 'GNSS',
       title: 'GNSS-Direct',
-      error: forecast_gnss,
-      isDisqualified: is_outage || gnss_quality < 0.2,
+      error: numVal(forecast_gnss),
+      isDisqualified: is_outage || numVal(gnss_quality) < 0.2,
       disqualifyReason: is_outage ? 'Outage Active (Qt = 0.00)' : 'Severely Degraded (Qt < 0.20)',
       color: 'sky',
       description: 'Raw satellite pseudorange solution',
@@ -34,7 +37,7 @@ export default function CandidateForecastPanel({ telemetry }) {
     {
       action: 'HYBRID',
       title: 'Fixed HYBRID',
-      error: forecast_hybrid,
+      error: numVal(forecast_hybrid),
       isDisqualified: false,
       color: 'emerald',
       description: 'Continuous loosely-coupled EKF fusion',
@@ -42,8 +45,8 @@ export default function CandidateForecastPanel({ telemetry }) {
     {
       action: 'DR',
       title: 'Pure DR',
-      error: forecast_dr,
-      isDisqualified: dr_survivability_s < 3.0 && is_outage === false,
+      error: numVal(forecast_dr),
+      isDisqualified: numVal(dr_survivability_s) < 3.0 && is_outage === false,
       disqualifyReason: 'T_surv < 3.0s drift bound',
       color: 'amber',
       description: 'Strapdown IMU inertial dead-reckoning',
@@ -60,8 +63,7 @@ export default function CandidateForecastPanel({ telemetry }) {
   };
 
   const getRiskPercentage = (err) => {
-    // 5.0m is safety threshold
-    return Math.min(100, Math.max(0, (err / 5.0) * 100));
+    return Math.min(100, Math.max(0, (numVal(err) / 5.0) * 100));
   };
 
   return (
@@ -118,7 +120,7 @@ export default function CandidateForecastPanel({ telemetry }) {
                         c.error > 5.0 ? 'text-rose-400' : 'text-slate-100'
                       }`}
                     >
-                      {c.error.toFixed(3)}
+                      {fmt(c.error, 3)}
                     </span>
                     <span className="text-xs text-slate-400 font-mono">m</span>
                   </div>
@@ -170,7 +172,7 @@ export default function CandidateForecastPanel({ telemetry }) {
       <div className="bg-slate-950/70 rounded-lg p-2.5 border border-slate-800 flex items-start gap-2.5">
         <Target className="w-4 h-4 text-blue-400 flex-shrink-0 mt-0.5" />
         <div className="flex-1 text-xs">
-          <div className="font-semibold text-slate-300">Policy Rationale & Hysteresis Rule:</div>
+          <div className="font-semibold text-slate-300">Policy Rationale &amp; Hysteresis Rule:</div>
           <div className="font-mono text-[11px] text-blue-300 mt-0.5 break-all">
             {decision_reason || 'NORMAL_EVALUATION'}
           </div>

@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Table, CheckCircle2, Award, ExternalLink, ShieldCheck } from 'lucide-react';
+import { Table, Award, ExternalLink } from 'lucide-react';
 import { fetchMasterResults } from '../../services/api';
+
+const numFixed = (val, digits = 3) =>
+  typeof val === 'number' && !isNaN(val) ? val.toFixed(digits) : val != null ? String(val) : '—';
 
 export default function ValidatedResultsSection({ onOpenResearchModal }) {
   const [tableData, setTableData] = useState(null);
@@ -14,7 +17,7 @@ export default function ValidatedResultsSection({ onOpenResearchModal }) {
           setTableData(master.table1_navigation_comparison);
         }
       } catch (e) {
-        console.warn('Could not load master results from backend', e);
+        console.warn('Could not load master results', e);
       } finally {
         setLoading(false);
       }
@@ -112,12 +115,12 @@ export default function ValidatedResultsSection({ onOpenResearchModal }) {
                           {row['Policy']}{' '}
                           {isVyra && <span className="text-[9px] text-cyan-400 ml-1 font-semibold">(PROPOSED)</span>}
                         </td>
-                        <td className="py-2 px-3 whitespace-nowrap">{row['ATE (m)'].toFixed(3)}</td>
-                        <td className="py-2 px-3 whitespace-nowrap">{row['RMSE (m)'].toFixed(3)}</td>
-                        <td className="py-2 px-3 whitespace-nowrap">{row['Max Error (m)'].toFixed(2)}</td>
-                        <td className="py-2 px-3 whitespace-nowrap">{row['Violations > 5m (%)'].toFixed(1)}%</td>
-                        <td className="py-2 px-3 whitespace-nowrap">{row['Handovers']}</td>
-                        <td className="py-2 px-3 whitespace-nowrap">{row['Chattering Rate (%)'].toFixed(1)}%</td>
+                        <td className="py-2 px-3 whitespace-nowrap">{numFixed(row['ATE (m)'], 3)}</td>
+                        <td className="py-2 px-3 whitespace-nowrap">{numFixed(row['RMSE (m)'], 3)}</td>
+                        <td className="py-2 px-3 whitespace-nowrap">{numFixed(row['Max Error (m)'], 2)}</td>
+                        <td className="py-2 px-3 whitespace-nowrap">{numFixed(row['Violations > 5m (%)'], 1)}%</td>
+                        <td className="py-2 px-3 whitespace-nowrap">{row['Handovers'] ?? '—'}</td>
+                        <td className="py-2 px-3 whitespace-nowrap">{numFixed(row['Chattering Rate (%)'], 1)}%</td>
                       </tr>
                     );
                   })}

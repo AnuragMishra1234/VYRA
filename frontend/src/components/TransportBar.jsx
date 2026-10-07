@@ -16,9 +16,12 @@ export default function TransportBar({
   onSpeedChange,
 }) {
   const isPlaying = status === 'playing';
-  const relativeTime = telemetry ? telemetry.relative_time_s.toFixed(1) : '0.0';
-  const totalSeconds = totalEpochs > 0 ? ((totalEpochs - 1) * 0.1).toFixed(1) : '0.0';
-  const progressPct = totalEpochs > 0 ? ((currentIndex / (totalEpochs - 1)) * 100).toFixed(1) : '0.0';
+  const relativeTime =
+    typeof telemetry?.relative_time_s === 'number' && !isNaN(telemetry.relative_time_s)
+      ? telemetry.relative_time_s.toFixed(1)
+      : ((currentIndex || 0) * 0.1).toFixed(1);
+  const totalSeconds = totalEpochs > 1 ? ((totalEpochs - 1) * 0.1).toFixed(1) : '2462.0';
+  const progressPct = totalEpochs > 1 ? ((Math.max(0, currentIndex) / (totalEpochs - 1)) * 100).toFixed(1) : '0.0';
 
   return (
     <div className="bg-[#0b101f]/80 backdrop-blur-xl border border-slate-800/80 rounded-2xl p-4 sm:p-5 shadow-2xl transition hover:border-slate-700/80">

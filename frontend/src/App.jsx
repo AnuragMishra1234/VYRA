@@ -7,6 +7,7 @@ import {
   fetchTrajectoryPaths,
   createPlaybackWebSocket,
 } from './services/api';
+import { getFallbackTelemetry } from './services/fallbackData';
 
 export default function App() {
   // View mode: 'landing' (cinematic 3D presentation) or 'prototype' (interactive replay dashboard)
@@ -27,12 +28,11 @@ export default function App() {
 
   const wsRef = useRef(null);
 
-  // Sync hash with view state
+  // Sync hash with view state in both directions
   useEffect(() => {
     const handleHash = () => {
-      if (window.location.hash === '#prototype') {
-        setActiveView('prototype');
-      }
+      const isProto = window.location.hash === '#prototype';
+      setActiveView(isProto ? 'prototype' : 'landing');
     };
     window.addEventListener('hashchange', handleHash);
     return () => window.removeEventListener('hashchange', handleHash);
@@ -45,18 +45,22 @@ export default function App() {
         setApiError(null);
         // 1. Initial State
         const state = await fetchPlaybackState();
-        setStatus(state.status);
-        setCurrentIndex(state.current_index);
-        setTotalEpochs(state.total_epochs);
-        setSpeedMultiplier(state.speed_multiplier);
-        if (state.telemetry) {
-          setTelemetry(state.telemetry);
-          setHistory([state.telemetry]);
+        if (state) {
+          setStatus(state.status || 'paused');
+          setCurrentIndex(state.current_index || 0);
+          setTotalEpochs(state.total_epochs || 24621);
+          setSpeedMultiplier(state.speed_multiplier || 1.0);
+          if (state.telemetry) {
+            setTelemetry(state.telemetry);
+            setHistory([state.telemetry]);
+          }
         }
 
         // 2. Trajectory Paths for Map
         const paths = await fetchTrajectoryPaths('V-S3a', 25);
-        setPathsData(paths);
+        if (paths) {
+          setPathsData(paths);
+        }
       } catch (err) {
         console.warn('Initial load warning: Backend may still be spinning up.', err);
       }
@@ -84,7 +88,7 @@ export default function App() {
         setIsConnected(false);
       },
       (err) => {
-        console.warn('WS info', err);
+        // Suppress noisy logs
       }
     );
 
@@ -95,85 +99,132 @@ export default function App() {
     };
   }, []);
 
+  // Standalone offline replay ticker when backend is not connected
+  useEffect(() => {
+    if (isConnected || status !== 'playing') return;
+
+    const intervalMs = Math.max(25, Math.round(100 / (speedMultiplier || 1.0)));
+    const timer = setInterval(() => {
+      setCurrentIndex((prev) => {
+        const next = prev + 1;
+        if (next >= totalEpochs) {
+          setStatus('paused');
+          return prev;
+        }
+        const simTel = getFallbackTelemetry(next);
+        setTelemetry(simTel);
+        setHistory((h) => [...h.slice(-150), simTel]);
+        return next;
+      });
+    }, intervalMs);
+
+    return () => clearInterval(timer);
+  }, [isConnected, status, speedMultiplier, totalEpochs]);
+
   // Control Handlers
   const handlePlay = async () => {
-    try {
-      const res = await sendPlaybackControl('play');
-      setStatus(res.status);
-    } catch (err) {
-      console.error(err);
+    setStatus('playing');
+    if (isConnected) {
+      try {
+        const res = await sendPlaybackControl('play');
+        if (res?.status) setStatus(res.status);
+      } catch (err) {
+        console.warn(err);
+      }
     }
   };
 
   const handlePause = async () => {
-    try {
-      const res = await sendPlaybackControl('pause');
-      setStatus(res.status);
-    } catch (err) {
-      console.error(err);
+    setStatus('paused');
+    if (isConnected) {
+      try {
+        const res = await sendPlaybackControl('pause');
+        if (res?.status) setStatus(res.status);
+      } catch (err) {
+        console.warn(err);
+      }
     }
   };
 
   const handleStepForward = async () => {
+    if (!isConnected) {
+      const next = Math.min(totalEpochs - 1, currentIndex + 1);
+      setCurrentIndex(next);
+      const tel = getFallbackTelemetry(next);
+      setTelemetry(tel);
+      setHistory((prev) => [...prev.slice(-150), tel]);
+      return;
+    }
     try {
       const res = await sendPlaybackControl('step');
-      setCurrentIndex(res.current_index);
-      if (res.telemetry) {
+      if (res?.current_index !== undefined) setCurrentIndex(res.current_index);
+      if (res?.telemetry) {
         setTelemetry(res.telemetry);
         setHistory((prev) => [...prev.slice(-150), res.telemetry]);
       }
     } catch (err) {
-      console.error(err);
+      console.warn(err);
     }
   };
 
   const handleStepBack = async () => {
+    if (!isConnected) {
+      const prevIdx = Math.max(0, currentIndex - 1);
+      setCurrentIndex(prevIdx);
+      const tel = getFallbackTelemetry(prevIdx);
+      setTelemetry(tel);
+      setHistory((prev) => [...prev.slice(-150), tel]);
+      return;
+    }
     try {
       const res = await sendPlaybackControl('step_back');
-      setCurrentIndex(res.current_index);
-      if (res.telemetry) {
+      if (res?.current_index !== undefined) setCurrentIndex(res.current_index);
+      if (res?.telemetry) {
         setTelemetry(res.telemetry);
         setHistory((prev) => [...prev.slice(-150), res.telemetry]);
       }
     } catch (err) {
-      console.error(err);
+      console.warn(err);
     }
   };
 
   const handleReset = async () => {
-    try {
-      const res = await sendPlaybackControl('reset');
-      setCurrentIndex(res.current_index);
-      setStatus(res.status);
-      if (res.telemetry) {
-        setTelemetry(res.telemetry);
-        setHistory([res.telemetry]);
+    setStatus('paused');
+    setCurrentIndex(0);
+    const tel = getFallbackTelemetry(0);
+    setTelemetry(tel);
+    setHistory([tel]);
+    if (isConnected) {
+      try {
+        await sendPlaybackControl('reset');
+      } catch (err) {
+        console.warn(err);
       }
-    } catch (err) {
-      console.error(err);
     }
   };
 
   const handleSeek = async (idx) => {
-    try {
-      setCurrentIndex(idx);
-      const res = await sendPlaybackControl('seek', idx);
-      if (res.telemetry) {
-        setTelemetry(res.telemetry);
-        setHistory((prev) => [...prev.slice(-150), res.telemetry]);
+    setCurrentIndex(idx);
+    const tel = getFallbackTelemetry(idx);
+    setTelemetry(tel);
+    setHistory((prev) => [...prev.slice(-150), tel]);
+    if (isConnected) {
+      try {
+        await sendPlaybackControl('seek', idx);
+      } catch (err) {
+        console.warn(err);
       }
-    } catch (err) {
-      console.error(err);
     }
   };
 
   const handleSpeedChange = async (speed) => {
-    try {
-      setSpeedMultiplier(speed);
-      const res = await sendPlaybackControl(status === 'playing' ? 'play' : 'pause', null, speed);
-      setSpeedMultiplier(res.speed_multiplier);
-    } catch (err) {
-      console.error(err);
+    setSpeedMultiplier(speed);
+    if (isConnected) {
+      try {
+        await sendPlaybackControl(status === 'playing' ? 'play' : 'pause', null, speed);
+      } catch (err) {
+        console.warn(err);
+      }
     }
   };
 

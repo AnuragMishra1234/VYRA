@@ -28,27 +28,38 @@ export default function MapView({ pathsData, telemetry }) {
     if (!mapContainerRef.current) return;
 
     if (!mapInstanceRef.current) {
-      const map = L.map(mapContainerRef.current, {
-        center: [30.528, 114.356], // Default near Wuhan Urban dataset area
-        zoom: 16,
-        zoomControl: false,
-        attributionControl: false,
-      });
+      if (mapContainerRef.current._leaflet_id) {
+        mapContainerRef.current._leaflet_id = null;
+      }
+      try {
+        const map = L.map(mapContainerRef.current, {
+          center: [30.528, 114.356], // Default near Wuhan Urban dataset area
+          zoom: 16,
+          zoomControl: false,
+          attributionControl: false,
+        });
 
-      L.control.zoom({ position: 'bottomright' }).addTo(map);
+        L.control.zoom({ position: 'bottomright' }).addTo(map);
 
-      // Attribution
-      L.control.attribution({ position: 'bottomleft', prefix: false })
-        .addAttribution('&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> contributors')
-        .addTo(map);
+        // Attribution
+        L.control.attribution({ position: 'bottomleft', prefix: false })
+          .addAttribution('&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> contributors')
+          .addTo(map);
 
-      mapInstanceRef.current = map;
+        mapInstanceRef.current = map;
+      } catch (err) {
+        console.warn('Leaflet map initialization warning:', err);
+      }
     }
 
     return () => {
       // Map cleanup on unmount
       if (mapInstanceRef.current) {
-        mapInstanceRef.current.remove();
+        try {
+          mapInstanceRef.current.remove();
+        } catch {
+          // ignore cleanup errors
+        }
         mapInstanceRef.current = null;
       }
     };
@@ -184,6 +195,7 @@ export default function MapView({ pathsData, telemetry }) {
 
     const lat = telemetry.vyra_coord.lat;
     const lon = telemetry.vyra_coord.lon;
+    if (lat == null || lon == null || isNaN(lat) || isNaN(lon)) return;
 
     if (!markerRef.current) {
       const pulseHtml = `
