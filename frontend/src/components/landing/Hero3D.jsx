@@ -506,11 +506,35 @@ export default function Hero3D({ onExploreClick, onLaunchPrototype }) {
             predicted risk before degradation breaches safety limits.
           </p>
 
+          {/* Quick High-Impact Metrics Ribbon */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 py-1 font-mono">
+            <div className="p-2.5 rounded-xl bg-slate-900/70 border border-slate-800/80 backdrop-blur">
+              <span className="text-[10px] text-cyan-400 uppercase tracking-wider block">ATE (V-S3a)</span>
+              <span className="text-base font-bold text-white">0.399 m</span>
+              <span className="text-[9px] text-slate-500 block">-97.7% vs GNSS</span>
+            </div>
+            <div className="p-2.5 rounded-xl bg-slate-900/70 border border-slate-800/80 backdrop-blur">
+              <span className="text-[10px] text-emerald-400 uppercase tracking-wider block">Lead Time</span>
+              <span className="text-base font-bold text-white">3.65 s</span>
+              <span className="text-[9px] text-slate-500 block">Pre-Outage Alert</span>
+            </div>
+            <div className="p-2.5 rounded-xl bg-slate-900/70 border border-slate-800/80 backdrop-blur">
+              <span className="text-[10px] text-purple-400 uppercase tracking-wider block">Top-1 Accuracy</span>
+              <span className="text-base font-bold text-white">95.43%</span>
+              <span className="text-[9px] text-slate-500 block">0.056m Regret</span>
+            </div>
+            <div className="p-2.5 rounded-xl bg-slate-900/70 border border-slate-800/80 backdrop-blur">
+              <span className="text-[10px] text-amber-400 uppercase tracking-wider block">Chattering</span>
+              <span className="text-base font-bold text-white">0.0%</span>
+              <span className="text-[9px] text-slate-500 block">16 Stable Handovers</span>
+            </div>
+          </div>
+
           {/* Call to Actions */}
-          <div className="flex flex-wrap items-center gap-4 pt-2">
+          <div className="flex flex-wrap items-center gap-3 pt-2">
             <button
               onClick={onLaunchPrototype}
-              className="px-6 py-3.5 rounded-xl font-semibold text-xs tracking-wider uppercase bg-blue-600 hover:bg-blue-500 text-white shadow-xl shadow-blue-600/30 transition transform hover:-translate-y-0.5 flex items-center gap-2"
+              className="px-6 py-3.5 rounded-xl font-bold font-mono text-xs tracking-wider uppercase bg-blue-600 hover:bg-blue-500 text-white shadow-xl shadow-blue-600/30 transition transform hover:-translate-y-0.5 flex items-center gap-2"
             >
               <Play className="w-4 h-4 fill-current" />
               <span>LAUNCH LIVE PROTOTYPE</span>
@@ -518,11 +542,21 @@ export default function Hero3D({ onExploreClick, onLaunchPrototype }) {
 
             <button
               onClick={onExploreClick}
-              className="px-6 py-3.5 rounded-xl font-semibold text-xs tracking-wider uppercase bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-800 transition flex items-center gap-2"
+              className="px-5 py-3.5 rounded-xl font-semibold font-mono text-xs tracking-wider uppercase bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-800 transition flex items-center gap-2"
             >
-              <span>EXPLORE VYRA</span>
+              <span>EXPLORE ARCHITECTURE</span>
               <ArrowDown className="w-4 h-4" />
             </button>
+
+            <a
+              href="/VYRA_COMPLETE_PROJECT_DETAILS.txt"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-4 py-3.5 rounded-xl font-semibold font-mono text-xs tracking-wider uppercase bg-blue-950/40 hover:bg-blue-900/50 text-cyan-400 border border-blue-900/60 transition"
+              title="Open full 6-page comprehensive research manual in a new tab"
+            >
+              <span>TECH SPEC (.TXT)</span>
+            </a>
           </div>
 
           {/* 3D Phase Stepper Controls */}

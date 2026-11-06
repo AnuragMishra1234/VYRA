@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Compass, ExternalLink, Play, LayoutDashboard, ChevronRight } from 'lucide-react';
+import { Compass, ExternalLink, Play, LayoutDashboard, ChevronRight, FileText } from 'lucide-react';
 
 export default function LandingNavbar({ activeView, onViewChange, onOpenResearchModal }) {
   const [scrolled, setScrolled] = useState(false);
@@ -15,11 +15,12 @@ export default function LandingNavbar({ activeView, onViewChange, onOpenResearch
   const navLinks = [
     { label: 'Overview', href: '#hero' },
     { label: 'The Problem', href: '#problem' },
-    { label: 'Three Branches', href: '#branches' },
+    { label: '3 Paths', href: '#branches' },
     { label: 'Mechanism', href: '#mechanism' },
-    { label: 'Architecture', href: '#architecture' },
+    { label: 'Simulator', href: '#simulator' },
     { label: 'Results', href: '#results' },
-    { label: 'Outage Demo', href: '#demo' },
+    { label: 'Stack', href: '#stack' },
+    { label: 'FAQ', href: '#faq' },
   ];
 
   return (
@@ -27,7 +28,7 @@ export default function LandingNavbar({ activeView, onViewChange, onOpenResearch
       className={`fixed top-0 left-0 right-0 z-40 transition-all duration-300 ${
         scrolled || activeView === 'prototype'
           ? 'bg-[#060911]/90 backdrop-blur-md border-b border-slate-800/80 shadow-2xl py-3'
-          : 'bg-transparent border-b border-white/5 py-5'
+          : 'bg-transparent border-b border-white/5 py-4'
       }`}
     >
       <div className="max-w-7xl mx-auto px-6 flex items-center justify-between">
@@ -60,7 +61,7 @@ export default function LandingNavbar({ activeView, onViewChange, onOpenResearch
 
         {/* Center Links (Shown in landing view) */}
         {activeView === 'landing' && (
-          <div className="hidden lg:flex items-center gap-6 text-xs text-slate-300 font-medium">
+          <div className="hidden lg:flex items-center gap-5 text-xs text-slate-300 font-medium">
             {navLinks.map((link) => (
               <a
                 key={link.label}
@@ -74,7 +75,18 @@ export default function LandingNavbar({ activeView, onViewChange, onOpenResearch
         )}
 
         {/* Action Controls */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
+          <a
+            href="/VYRA_COMPLETE_PROJECT_DETAILS.txt"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hidden md:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono text-cyan-300 hover:text-white bg-blue-950/40 hover:bg-blue-900/40 border border-blue-900/60 transition"
+            title="Read 6-Page Technical Reference (.txt)"
+          >
+            <FileText className="w-3.5 h-3.5 text-cyan-400" />
+            <span>Tech Spec</span>
+          </a>
+
           <button
             onClick={onOpenResearchModal}
             className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-slate-300 hover:text-white bg-slate-900/80 hover:bg-slate-800 border border-slate-800 transition"
@@ -85,16 +97,16 @@ export default function LandingNavbar({ activeView, onViewChange, onOpenResearch
           {activeView === 'landing' ? (
             <button
               onClick={() => onViewChange('prototype')}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-600/30 transition transform hover:-translate-y-0.5"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold font-mono bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-600/30 transition transform hover:-translate-y-0.5"
             >
               <LayoutDashboard className="w-3.5 h-3.5" />
-              <span>LAUNCH PROTOTYPE</span>
+              <span>LIVE PROTOTYPE</span>
               <ChevronRight className="w-3.5 h-3.5 text-blue-200" />
             </button>
           ) : (
             <button
               onClick={() => onViewChange('landing')}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold font-mono bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition"
             >
               <Compass className="w-3.5 h-3.5 text-blue-400" />
               <span>OVERVIEW PAGE</span>

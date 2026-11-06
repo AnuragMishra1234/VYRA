@@ -53,6 +53,16 @@ export default function LandingFooter({ onViewChange, onOpenResearchModal }) {
                   Publication Evidence &amp; Tables
                 </button>
               </li>
+              <li>
+                <a
+                  href="/VYRA_COMPLETE_PROJECT_DETAILS.txt"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:text-cyan-400 transition text-cyan-400"
+                >
+                  6-Page Technical Reference (.txt) &nearr;
+                </a>
+              </li>
             </ul>
           </div>
 

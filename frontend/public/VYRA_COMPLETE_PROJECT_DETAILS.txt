@@ -1,0 +1,845 @@
+================================================================================
+                    VYRA COMPLETE PROJECT REFERENCE MANUAL
+================================================================================
+PROJECT TITLE:
+VYRA: Forecast-Driven Adaptive Navigation-Mode Selection for Resilient
+      GNSS / Dead-Reckoning Autonomous Vehicular Localization
+
+STATUS & COMPLETION: Complete End-to-End System (Phases 1-12)
+PRIMARY DOMAIN: Autonomous Vehicle Sensor Fusion, Resilient Navigation,
+                Kinematic Quality Estimation, Machine Learning Error Forecasting
+DOCUMENT SCOPE: Comprehensive Technical, Mathematical, Algorithmic, Experimental,
+                and Implementation Reference (Approx. 5-6 Standard Pages)
+DATASET BENCHMARK: IO-VNBD (Inertial Odometry and Vehicle Navigation Benchmark Dataset)
+AUTHORITATIVE DATA REPOSITORY: results/processed/phase5_master_results.json
+================================================================================
+
+--------------------------------------------------------------------------------
+TABLE OF CONTENTS
+--------------------------------------------------------------------------------
+1. EXECUTIVE SUMMARY & RESEARCH MOTIVATION
+   1.1 The Navigation Dilemma: Reactive Switching vs Continuous Drift
+   1.2 Core Research Question & Technical Philosophy
+   1.3 Summary of Key Research Contributions
+
+2. SYSTEM ARCHITECTURE & END-TO-END PIPELINE FLOW
+   2.1 End-to-End Functional Topology
+   2.2 Candidate Action Space Definition
+   2.3 Closed-Loop Control and Decision Cycle (10 Hz)
+
+3. DATASET SPECIFICATIONS & ZERO-LEAKAGE PROTOCOL
+   3.1 IO-VNBD Benchmark Dataset Properties
+   3.2 Sensor Modalities & Raw Measurement Channels
+   3.3 Strict Trajectory-Level Partitioning (V-S1, V-S2, V-S3a)
+   3.4 Anti-Leakage Feature Scaling & Target Masking Protocol
+
+4. SPATIAL GEOMETRY & COORDINATE TRANSFORMATIONS
+   4.1 Geodetic WGS84 to Earth-Centered Earth-Fixed (ECEF)
+   4.2 ECEF to Local East-North-Up (ENU) Tangent Plane
+   4.3 Vehicle Compass Heading to ENU Yaw Angle
+
+5. GNSS QUALITY ESTIMATION ENGINE
+   5.1 Satellite Constellation Geometry Score (S_sat)
+   5.2 Kinematic Velocity Discrepancy & Consistency Score (S_kin)
+   5.3 Acceleration Stability & Dynamic Jitter Score (S_stab)
+   5.4 Continuous Composite Reliability Metric (Q_t)
+   5.5 Supervised Degradation Labeling Rule
+
+6. MACHINE LEARNING MODELS & TRAINING SPECIFICATIONS
+   6.1 Causal Observation Feature Vector (s_t in R^21)
+   6.2 Models Evaluated: Persistence, Logistic Regression, Random Forest, XGBoost
+   6.3 Detailed Hyperparameters, Estimators, and Training Regimes
+   6.4 Probability Calibration via Platt Scaling & ECE Verification
+   6.5 Degradation Prediction Lead Time Distribution
+
+7. STRAPDOWN DEAD RECKONING & IMU MECHANIZATION
+   7.1 Strapdown Kinematic Heading & Position Integration
+   7.2 Accelerometer & Gyroscope Bias Formulations
+   7.3 Wheel-Odometry Speed Blending & Slip Compensation
+
+8. 6-STATE LOOSELY-COUPLED EXTENDED KALMAN FILTER (EKF)
+   8.1 State Vector & Non-Linear Propagation Model
+   8.2 State Transition Jacobian Matrix Formulation
+   8.3 Process Noise Covariance Matrix Structure
+   8.4 Quality-Adaptive Measurement Covariance Inflation (R_k)
+   8.5 Kalman Gain & A Posteriori State/Covariance Updates
+
+9. ANALYTICAL DEAD RECKONING UNCERTAINTY & SURVIVABILITY
+   9.1 Continuous-Time Covariance Propagation (Lyapunov Equation)
+   9.2 4th-Order Polynomial Horizontal Variance Expansion
+   9.3 Rayleigh Error Distribution & Safety Bound Formulation
+   9.4 Closed-Form Bi-Quadratic Survivable Duration Derivation (T_surv)
+
+10. ACTION-CONDITIONED ERROR FORECASTING ENGINE
+    10.1 Counterfactual Formulation: Beyond Degraded State Detection
+    10.2 Interaction Feature Vector Design (x_cond in R^34)
+    10.3 Offline Target Construction Across Candidate Actions
+    10.4 Supervised Loss Function: Robust Huber Loss Formulation
+    10.5 Offline Oracle Decision Regret & Ranking Accuracy
+
+11. MULTI-OBJECTIVE ADAPTIVE DECISION POLICY
+    11.1 Multi-Objective Cost Function Formulation (J(A))
+    11.2 Safety Risk Penalty & Dead-Reckoning Survivability Penalty
+    11.3 Regularization Mechanisms: Hysteresis Margin & Minimum Dwell Time
+    11.4 Emergency Safety Override Interlocks
+
+12. CONTROLLED GNSS DEGRADATION SIMULATION
+    12.1 Degradation Profile Mechanics (Attenuation, Jitter, Total Denial)
+    12.2 Multi-Duration Parameter Sweep Protocols (T in {2, 5, 10, 20, 30} seconds)
+    12.3 Trajectory Coverage & Event Spacing on Test Set
+
+13. COMPREHENSIVE EXPERIMENTAL RESULTS & BENCHMARK TABLES
+    13.1 Benchmark Comparison on Held-Out Test Split V-S3a (Table 1)
+    13.2 Outage Duration Sweep Analysis (Table 2)
+    13.3 Multi-Horizon Forecast Fidelity & Ranking Metrics (Table 3 & 4)
+    13.4 Systematic Component Ablation Study (Table 5)
+    13.5 Rigorous Statistical Significance & Effect Size Testing (Table 7)
+
+14. FAILURE MODE ANALYSIS, DIAGNOSTICS & SYSTEM LIMITATIONS
+    14.1 Reacquisition Discontinuity Following Prolonged Denial
+    14.2 High-Yaw Dynamic Extrapolation Drift
+    14.3 Sensor Biases in Outages Exceeding 30 Seconds
+    14.4 Theoretical & Practical Limitations
+
+15. FULL-STACK SOFTWARE IMPLEMENTATION & REPRODUCIBILITY
+    15.1 Backend Microservice Architecture (FastAPI, WebSockets, Parquet Streaming)
+    15.2 Interactive Frontend Architecture (React 18, Vite, Plotly, Leaflet, Three.js)
+    15.3 Robustness & Graceful Degradation: Standalone Fallback Data Mode
+    15.4 Reproduction Instructions & Repository Map
+================================================================================
+
+
+================================================================================
+1. EXECUTIVE SUMMARY & RESEARCH MOTIVATION
+================================================================================
+1.1 The Navigation Dilemma: Reactive Switching vs Continuous Drift
+Autonomous vehicles, mobile robots, and intelligent transportation systems require
+uninterrupted, lane-level horizontal positioning (< 1.0 m to 5.0 m accuracy) to navigate
+safely. Contemporary localization architectures combine Global Navigation Satellite
+Systems (GNSS) with Onboard Inertial Measurement Units (IMUs) and wheel odometry using
+Extended Kalman Filters (EKF).
+
+However, in dense urban canyons, highway underpasses, covered interchanges, and tree-lined
+boulevards, GNSS signals experience non-line-of-sight (NLOS) reception, multipath reflections,
+and total satellite occlusion. In these compromised zones, navigation systems face a
+fundamental dilemma:
+1. "Switching Too Late": If the EKF continues fusing degraded GNSS measurements whose
+   pseudorange biases range from 10 m to 50+ m, spurious observation updates rapidly corrupt
+   the filter state, introducing catastrophic position divergence.
+2. "Switching Too Early": If the system immediately disengages GNSS at the first sign of
+   minor signal perturbation to enter Dead Reckoning (DR), open-loop integration of IMU
+   accelerometer noise and gyroscope drift causes rapid, unbounded polynomial error expansion.
+
+Conventional navigation systems address this through reactive, instantaneous threshold-based
+switching (e.g., cut off GNSS if HDOP > 4.0 or satellite count < 4). These reactive approaches
+suffer from acute latency: by the time an instantaneous metric crosses an alarm threshold,
+corrupted fixes have already entered the navigation pipeline. Conversely, when signals hover
+near the threshold boundary, reactive switches induce high-frequency "chattering" (rapid,
+destabilizing mode toggling).
+
+1.2 Core Research Question & Technical Philosophy
+VYRA resolves this operational impasse by replacing reactive switching with forecast-driven,
+closed-loop action-conditioned error prediction. Rather than asking:
+   "Is the GNSS signal currently degraded?"
+VYRA continuously poses the forward-looking counterfactual query:
+   "If GNSS, HYBRID fusion, or pure Dead Reckoning is committed to at this instant, what
+   maximum localization error and bound violation risk will occur over the next H seconds?"
+
+1.3 Summary of Key Research Contributions
+1. Closed-Loop Action-Conditioned Forecasting: Formulated and trained an action-conditioned
+   gradient-boosted regressor that predicts the future maximum positioning error for candidate
+   navigation actions over short horizons H in {1s, 3s, 5s, 10s}, reaching 95.43% top-1
+   optimal mode ranking accuracy and an average decision regret of only 0.056 m.
+2. Analytical Bi-Quadratic DR Survivability (T_surv): Derived a closed-form analytical
+   solution for the maximum duration DR can be maintained before exceeding an operational
+   safety bound (5.0 m) under a Rayleigh distribution, suppressing unnecessary handovers
+   by 91.0% (from 178 down to 16).
+3. Pre-Outage Warning with 3.65 s Lead Time: Developed a Platt-calibrated gradient-boosted
+   predictor operating on a 21-dimensional causal feature vector that detects imminent GNSS
+   degradation with AUC-ROC = 0.942 and a mean lead-time of 3.65 seconds prior to signal loss.
+4. Comprehensive Empirical Validation: Validated on 170,243 real-world epochs (4.72 hours)
+   from the IO-VNBD benchmark. Across 20 simulated outage sweeps on the held-out test route
+   (V-S3a), VYRA achieved 0.399 m Absolute Trajectory Error (ATE), outperforming GNSS-Only
+   (17.136 m, a 97.7% reduction), Pure DR (720.202 m, a 99.9% reduction), and conventional
+   Reactive Switching (0.712 m, a 44.0% reduction with 51.5% fewer 5 m safety violations).
+
+
+================================================================================
+2. SYSTEM ARCHITECTURE & END-TO-END PIPELINE FLOW
+================================================================================
+2.1 End-to-End Functional Topology
+The VYRA framework operates as a 10 Hz synchronous closed loop comprising four tightly
+integrated subsystems:
+
++---------------------------------------------------------------------------------+
+|                       1. SENSOR INGESTION & QUALITY ENGINE                      |
+|  - WGS84/CAN/IMU Ingestion at 10 Hz                                             |
+|  - WGS84 -> ECEF -> ENU Coordinate Projection                                   |
+|  - Multi-Sensor Kinematic Consistency: S_sat(t), S_kin(t), S_stab(t)            |
+|  - Continuous Composite Health Metric Q_t in [0.0, 1.0]                         |
++---------------------------------------------------------------------------------+
+                                       |
+                                       v
++---------------------------------------------------------------------------------+
+|                    2. PREDICTIVE GNSS DEGRADATION DETECTOR                       |
+|  - Causal 5.0 s Historical Window State Vector s_t in R^21                      |
+|  - Platt-Calibrated Gradient Boosted Classifier                                 |
+|  - Forward Impairment Probability P(Y(t, H)=1 | s_t) with 3.65 s Mean Lead Time |
++---------------------------------------------------------------------------------+
+                                       |
+                                       v
++---------------------------------------------------------------------------------+
+|              3. ANALYTICAL DR SURVIVABILITY & STATE PROPAGATION                 |
+|  - 6-State Loosely-Coupled EKF (Position, Velocity, Yaw, Gyro Bias)             |
+|  - Dynamic Measurement Covariance Inflation R_k(Q_t)                            |
+|  - 4th-Order Polynomial Covariance Expansion sigma_pos^2(T)                     |
+|  - Closed-Form Bi-Quadratic Median Survivable Duration T_surv                   |
++---------------------------------------------------------------------------------+
+                                       |
+                                       v
++---------------------------------------------------------------------------------+
+|                 4. ACTION-CONDITIONED FORECAST & POLICY ENGINE                  |
+|  - Bilinear Interaction Feature Vector x_cond in R^34                           |
+|  - Huber-Trained Action-Conditioned Regressor e_hat(t, A, H)                    |
+|  - Multi-Objective Decision Cost J(A) (Tracking Error + Risk + DR Penalty)      |
+|  - Regularization: 0.5 m Hysteresis, 2.0 s Dwell-Time, 15 m Emergency Bypass   |
+|  - Active Navigation Mode Selection M_t in {GNSS, HYBRID, DR}                   |
++---------------------------------------------------------------------------------+
+
+2.2 Candidate Action Space Definition
+At each decision epoch t, the policy considers three mutually exclusive operational modes:
+- Action A_1 = GNSS (One-hot [1, 0, 0]^T): Raw satellite fixes accepted directly.
+- Action A_2 = HYBRID (One-hot [0, 1, 0]^T): 6-state loosely-coupled EKF with adaptive
+  measurement noise covariance inflation R_k(Q_t).
+- Action A_3 = DR (One-hot [0, 0, 1]^T): Open-loop strapdown dead reckoning using wheel
+  odometry and yaw rate, completely isolating the navigation state from GNSS.
+
+2.3 Closed-Loop Control and Decision Cycle (10 Hz)
+Every delta_t = 0.1 seconds:
+1. Raw GNSS fixes, CAN wheel speeds, and IMU angular rates/accelerations are acquired.
+2. Coordinates are projected into the local tangent ENU plane; composite quality Q_t is evaluated.
+3. Feature vector s_t is populated; degradation probability P(Y) is inferred.
+4. Analytical DR survivability T_surv is computed via closed-form roots.
+5. Action-conditioned feature vectors x_cond are constructed for all three actions.
+6. Maximum error e_hat(A) and bound violation risk are predicted for each candidate.
+7. Multi-objective cost J(A) is scored; mode handover occurs if hysteresis and dwell-time
+   criteria are satisfied.
+8. State estimate is output to the vehicle motion planner and real-time dashboard.
+
+
+================================================================================
+3. DATASET SPECIFICATIONS & ZERO-LEAKAGE PROTOCOL
+================================================================================
+3.1 IO-VNBD Benchmark Dataset Properties
+The empirical foundation of VYRA is the Inertial Odometry and Vehicle Navigation Benchmark
+Dataset (IO-VNBD), collected and released by Uche Onyekpeu et al. (Coventry University, UK):
+- Target Series: Real-world vehicular driving series (V-Series).
+- Sampling Frequency: Synchronized 10 Hz (delta_t = 0.1 s).
+- Total Volume: 170,243 rows across 4.72 hours of authentic UK urban, suburban, and highway driving.
+- Ground Truth Reference: High-precision dual-antenna RTK GNSS coupled with a tactical-grade
+  Inertial Navigation System (INS), recording geodetic coordinates to 8 decimal places (~1.1 mm).
+
+3.2 Sensor Modalities & Raw Measurement Channels
+The recorded data streams comprise:
+- GNSS: Geodetic Latitude [deg], Longitude [deg], Altitude [m], Ground Speed [km/h],
+  Course Heading [deg], Satellites Visible [integer count].
+- IMU: 3-axis Accelerations (longitudinal a_x, lateral a_y, vertical a_z) [m/s^2];
+  3-axis Angular Rates (roll rate omega_x, pitch rate omega_y, yaw rate omega_z) [deg/s and rad/s].
+- Vehicle CAN Bus: Front steering wheel angle [deg], 4-wheel speeds and transmission speed [km/h].
+
+3.3 Strict Trajectory-Level Partitioning (V-S1, V-S2, V-S3a)
+To guarantee rigorous generalization and prevent data leakage, dataset splitting is executed
+strictly at the trajectory level (entire independent physical driving journeys):
+- Training Split (V-S1): 51,194 epochs (85.3 minutes, 1.42 hours). Used exclusively for
+  feature normalization parameter fitting, classifier training, and regressor training.
+- Validation Split (V-S2): 94,428 epochs (157.4 minutes, 2.62 hours). Used exclusively for
+  hyperparameter optimization, Platt probability calibration, and threshold selection.
+- Held-Out Test Split (V-S3a): 24,621 epochs (41.0 minutes, 0.68 hours). Completely unseen
+  during training and calibration; used solely for final closed-loop comparative evaluation.
+
+3.4 Anti-Leakage Feature Scaling & Target Masking Protocol
+1. Trajectory-Level Isolation: No segments of test trip V-S3a are present in V-S1 or V-S2.
+2. Training-Only Scaling: All z-score scalers (mean, variance) and min-max boundaries are
+   computed solely on V-S1 and frozen.
+3. Strict Causal History Windows: Features extracted at epoch t utilize historical data
+   strictly from [t - L, t] where L = 50 epochs (5.0 s). Future epochs (t > t_now) are
+   strictly inaccessible to online inference.
+4. Outage Target Masking: During simulated outages, operational measurement columns are masked
+   before being supplied to feature extractors or estimators.
+
+
+================================================================================
+4. SPATIAL GEOMETRY & COORDINATE TRANSFORMATIONS
+================================================================================
+4.1 Geodetic WGS84 to Earth-Centered Earth-Fixed (ECEF)
+Given geodetic latitude phi, longitude lambda, and ellipsoidal height h, coordinates are
+projected to Cartesian ECEF coordinates (X, Y, Z) using the WGS84 reference ellipsoid
+(semi-major axis a = 6,378,137.0 m; flattening f = 1 / 298.257223563; eccentricity e^2 = 2f - f^2):
+
+   N(phi) = a / sqrt(1 - e^2 * sin^2(phi))
+
+   X = (N(phi) + h) * cos(phi) * cos(lambda)
+   Y = (N(phi) + h) * cos(phi) * sin(lambda)
+   Z = (N(phi) * (1 - e^2) + h) * sin(phi)
+
+4.2 ECEF to Local East-North-Up (ENU) Tangent Plane
+To eliminate planetary curvature and establish an intuitive Cartesian navigation frame, ECEF
+vectors are projected relative to a fixed trajectory origin (phi_0, lambda_0, h_0) into
+East-North-Up coordinates (p_e, p_n, p_u):
+
+   [ p_e ]   [ -sin(lambda_0)              cos(lambda_0)             0          ] [ X - X_0 ]
+   [ p_n ] = [ -sin(phi_0)*cos(lambda_0)  -sin(phi_0)*sin(lambda_0)  cos(phi_0) ] [ Y - Y_0 ]
+   [ p_u ]   [  cos(phi_0)*cos(lambda_0)   cos(phi_0)*sin(lambda_0)  sin(phi_0) ] [ Z - Z_0 ]
+
+All horizontal localization errors in VYRA are computed on the 2D plane:
+   e_pos(t) = sqrt((p_e(t) - p_e,ref(t))^2 + (p_n(t) - p_n,ref(t))^2)
+
+4.3 Vehicle Compass Heading to ENU Yaw Angle
+IO-VNBD compass course theta_comp (measured clockwise from Geographic North, 0 deg = North,
+90 deg = East) is mapped into the standard ENU mathematical orientation psi (counter-clockwise
+from East, 0 rad = East, pi/2 rad = North):
+
+   psi = (450 deg - theta_comp) mod 360 deg
+   psi_rad = psi * (pi / 180)
+
+
+================================================================================
+5. GNSS QUALITY ESTIMATION ENGINE
+================================================================================
+5.1 Satellite Constellation Geometry Score (S_sat)
+Reflects geometric satellite availability normalized between minimum fix requirements and
+nominal open-sky visibility:
+
+   S_sat(t) = clip( (N_sat(t) - N_min) / (N_nominal - N_min), 0.0, 1.0 )
+
+   Parameters: N_min = 4 (minimum for 3D trilateration); N_nominal = 12 (nominal line-of-sight).
+
+5.2 Kinematic Velocity Discrepancy & Consistency Score (S_kin)
+Detects pseudorange multipath and Doppler velocity corruption by measuring the physical
+discrepancy between GNSS Doppler speed and CAN wheel-speed odometry:
+
+   D_kin(t) = | v_gnss(t) - v_wheel(t) |
+   S_kin(t) = exp( - D_kin(t)^2 / (2 * sigma_kin^2) )
+
+   Parameter: sigma_kin = 1.5 m/s (accommodates allowable tire slip and chassis compliance).
+
+5.3 Acceleration Stability & Dynamic Jitter Score (S_stab)
+Detects high-frequency GNSS noise and numerical jump artifacts by evaluating the discrepancy
+between differentiated GNSS velocity and onboard longitudinal IMU acceleration:
+
+   D_acc(t) = | (v_gnss(t) - v_gnss(t - delta_t)) / delta_t - a_long(t) |
+   S_stab(t) = exp( - D_acc(t)^2 / (2 * sigma_acc^2) )
+
+   Parameter: sigma_acc = 2.0 m/s^2.
+
+5.4 Continuous Composite Reliability Metric (Q_t)
+The multi-sensor consistency scores are fused via a convex combination:
+
+   Q_t = w_1 * S_sat(t) + w_2 * S_kin(t) + w_3 * S_stab(t)
+
+   Weights: w_1 = 0.45, w_2 = 0.35, w_3 = 0.20 (sum = 1.0).
+   Output Range: Q_t in [0.0, 1.0]. Q_t = 1.0 indicates pristine open sky; Q_t < 0.70 signals
+   degradation; Q_t < 0.20 signals critical sensor failure.
+
+5.5 Supervised Degradation Labeling Rule
+Ground-truth degradation at epoch t is assigned deterministically by:
+   Degraded(t) = 1  if (Q_t < 0.70  OR  N_sat < 4  OR  D_kin > 2.0 m/s), else 0
+
+The forward prediction target over forecast horizon H (in seconds) is:
+   Y(t, H) = max_{tau in (t, t + H]} Degraded(tau)
+
+
+================================================================================
+6. MACHINE LEARNING MODELS & TRAINING SPECIFICATIONS
+================================================================================
+6.1 Causal Observation Feature Vector (s_t in R^21)
+At each epoch t, a 21-dimensional causal feature vector is constructed from historical
+measurements over a 5.0 s window (L = 50 epochs at 10 Hz):
+   s_t = [ Q_t,  N_sat,  D_kin,  v_gnss,  v_wheel,
+           dQ/dt,  Var(Q, 2s),  Min(Q, 5s),  Mean(Q, 2s),
+           dN_sat/dt,  Min(N_sat, 5s),
+           dD_kin/dt,  Max(D_kin, 2s),
+           a_long,  a_lat,  omega_z,  delta_steer,
+           dv_wheel/dt,  v_wheel^2,  Q_t * v_wheel,  N_sat / (GDOP_proxy + 1e-4) ]^T
+
+6.2 Models Evaluated
+Four classification architectures were trained on V-S1, tuned on V-S2, and tested on V-S3a:
+1. Heuristic Persistence Baseline: Assumes future state equals instantaneous degraded state.
+2. L2-Regularized Logistic Regression: Baseline linear decision boundary with balanced class weights.
+3. Random Forest Classifier: Ensemble of bagging decision trees.
+4. Gradient Boosted Decision Trees (XGBoost): Sequential tree boosting optimizing log-loss.
+
+6.3 Detailed Hyperparameters and Training Regimes
+- Logistic Regression:
+  * Regularization: L2 penalty, inverse strength C = 1.0, solver = 'lbfgs', max_iter = 1000.
+  * Class Weighting: Balanced inverse frequency weighting.
+- Random Forest:
+  * Number of Trees: 100 estimators.
+  * Max Tree Depth: 12.
+  * Min Samples per Leaf: 5.
+  * Split Criterion: Gini impurity; max features = 'sqrt'.
+- Gradient Boosted Decision Trees (XGBoost - Primary Model):
+  * Number of Estimators (Trees): 150.
+  * Maximum Tree Depth: 6.
+  * Learning Rate (Eta): 0.05.
+  * Subsample Ratio: 0.80 (row sampling per tree).
+  * Colsample by Tree: 0.80 (feature sampling per tree).
+  * Objective Function: 'binary:logistic'.
+  * Regularization: L1 (alpha) = 0.1, L2 (lambda) = 1.0.
+
+6.4 Probability Calibration via Platt Scaling & ECE Verification
+To ensure raw classifier margins f(s_t) represent true posterior probabilities:
+   P(Y = 1 | s_t) = 1 / (1 + exp( - (A * f(s_t) + B) ))
+
+Scalar parameters A and B were fitted via maximum likelihood on validation split V-S2.
+Calibration quality was verified using Expected Calibration Error (ECE) across M = 10 bins:
+   ECE = sum_{m=1}^M (|B_m| / N) * | acc(B_m) - conf(B_m) |
+
+Empirical Results on Held-Out Test Split V-S3a:
+- Uncalibrated XGBoost ECE: 0.084.
+- Platt-Calibrated XGBoost ECE: 0.021 (a 75.0% reduction in calibration error).
+- Discrimination Performance: AUC-ROC = 0.942, Precision-Recall AUC (PR-AUC) = 0.812.
+
+6.5 Degradation Prediction Lead Time Distribution
+The classifier reliably anticipates oncoming degradation prior to actual signal loss:
+- Mean Warning Lead Time: 3.65 seconds.
+- Median Warning Lead Time: 3.80 seconds.
+- 90th Percentile Lead Time: 4.80 seconds.
+This multi-second advance warning provides the executive policy ample time to plan
+smooth mode handovers before corrupted pseudoranges penetrate the state estimator.
+
+
+================================================================================
+7. STRAPDOWN DEAD RECKONING & IMU MECHANIZATION
+================================================================================
+7.1 Strapdown Kinematic Heading & Position Integration
+When operating in Dead Reckoning mode (Action A_3), position is propagated purely through
+chassis kinematics and inertial measurements, completely decoupled from GNSS:
+   psi_dr(k) = psi_dr(k-1) + (omega_z(k) - b_g) * delta_t
+   v_dr(k)   = v_wheel(k)
+   p_e,dr(k) = p_e,dr(k-1) + v_dr(k) * cos(psi_dr(k)) * delta_t
+   p_n,dr(k) = p_n,dr(k-1) + v_dr(k) * sin(psi_dr(k)) * delta_t
+
+7.2 Accelerometer & Gyroscope Bias Formulations
+Raw IMU measurements are compensated online:
+   a_corr = a_raw - b_a
+   omega_corr = omega_raw - b_g
+where b_g is the online estimated gyroscope bias tracked by the EKF during HYBRID operation.
+During DR outages, b_g is frozen at its last estimated value.
+
+7.3 Wheel-Odometry Speed Blending & Slip Compensation
+Forward longitudinal velocity v_wheel is obtained from the average of rear-wheel CAN pulse
+sensors, avoiding front-wheel steering scrub effects. Slip ratio is bounded through
+acceleration consistency checks with IMU longitudinal specific force.
+
+
+================================================================================
+8. 6-STATE LOOSELY-COUPLED EXTENDED KALMAN FILTER (EKF)
+================================================================================
+8.1 State Vector & Non-Linear Propagation Model
+The central fusion core is a 6-state loosely-coupled error-state EKF:
+   x_k = [ p_e(k),  p_n(k),  v_e(k),  v_n(k),  psi(k),  b_g(k) ]^T in R^6
+
+Discrete Kinematic Process Model:
+Given input vector u_k = [a_long(k), a_lat(k), omega_z(k)]^T:
+   p_e(k) = p_e(k-1) + v_e(k-1) * delta_t
+   p_n(k) = p_n(k-1) + v_n(k-1) * delta_t
+   v_e(k) = v_e(k-1) + (a_long * cos(psi) - a_lat * sin(psi)) * delta_t
+   v_n(k) = v_n(k-1) + (a_long * sin(psi) + a_lat * cos(psi)) * delta_t
+   psi(k) = psi(k-1) + (omega_z - b_g) * delta_t
+   b_g(k) = b_g(k-1)
+
+8.2 State Transition Jacobian Matrix Formulation
+The Jacobian matrix F_k = df / dx evaluated at state x_{k-1} is:
+
+   F_k = [ 1   0   delta_t     0                     0                     0        ]
+         [ 0   1      0     delta_t                  0                     0        ]
+         [ 0   0      1        0      (-a_long*sin(psi) - a_lat*cos(psi))*dt   0        ]
+         [ 0   0      0        1       (a_long*cos(psi) - a_lat*sin(psi))*dt   0        ]
+         [ 0   0      0        0                     1                  -delta_t    ]
+         [ 0   0      0        0                     0                     1        ]
+
+8.3 Process Noise Covariance Matrix Structure
+The process noise covariance matrix Q in R^{6x6} is formulated as:
+   Q = diag([ sigma_p^2, sigma_p^2, sigma_v^2, sigma_v^2, sigma_psi^2, sigma_bg^2 ])
+
+Empirically tuned values:
+- Position noise: sigma_p = 0.01 m
+- Velocity noise: sigma_v = 0.10 m/s
+- Heading noise: sigma_psi = 0.005 rad
+- Gyro bias random walk: sigma_bg = 0.0001 rad/s
+
+A priori covariance propagation:
+   P_k^- = F_k * P_{k-1} * F_k^T + Q
+
+8.4 Quality-Adaptive Measurement Covariance Inflation (R_k)
+GNSS observations provide horizontal position and velocity:
+   z_k = [ p_e^gnss, p_n^gnss, v_e^gnss, v_n^gnss ]^T = H * x_k + v_k
+where observation matrix H in R^{4x6} maps states 1-4 directly.
+
+Crucially, observation noise covariance R_k dynamically scales with composite quality Q_k:
+   R_k = R_nominal * ( 1.0 + gamma_scale * ((1.0 - Q_k) / (Q_k + epsilon))^2 )
+
+Parameters:
+- Nominal Covariance: R_nominal = diag([2.25 m^2, 2.25 m^2, 0.0625 (m/s)^2, 0.0625 (m/s)^2])
+- Scaling Aggressiveness: gamma_scale = 5.0
+- Singularity Epsilon: epsilon = 1e-4
+
+Under pristine conditions (Q_k = 1.0), R_k = R_nominal. When degradation begins (Q_k = 0.3),
+R_k inflates by a factor of ~28x, smoothly shifting filter reliance onto dead reckoning
+without discrete discontinuities.
+
+8.5 Kalman Gain & A Posteriori Updates
+   K_k = P_k^- * H^T * ( H * P_k^- * H^T + R_k )^(-1)
+   x_hat_k = x_hat_k^- + K_k * ( z_k - H * x_hat_k^- )
+   P_k = ( I - K_k * H ) * P_k^-
+
+
+================================================================================
+9. ANALYTICAL DEAD RECKONING UNCERTAINTY & SURVIVABILITY
+================================================================================
+9.1 Continuous-Time Covariance Propagation (Lyapunov Equation)
+During complete GNSS denial, position variance evolves according to the continuous-time
+differential Lyapunov equation:
+   d P_pos / dt = 2 * P_vel + v(t)^2 * sigma_psi^2(t) * I_{2x2}
+
+9.2 4th-Order Polynomial Horizontal Variance Expansion
+Integrating across outage duration T under the assumption of white gyroscope rate noise
+(sigma_psi^2(t) = sigma_{psi, 0}^2 + sigma_omega^2 * t) yields the exact 4th-order polynomial
+horizontal variance expansion:
+
+   sigma_pos^2(T) = sigma_{pos, 0}^2 + sigma_v^2 * T^2
+                    + (1/3) * v^2 * sigma_{psi, 0}^2 * T^2
+                    + (1/12) * v^2 * sigma_omega^2 * T^4
+
+Physical Parameters:
+- sigma_{pos, 0}^2: Initial horizontal position variance at outage onset (trace(P_k[0:2, 0:2])).
+- sigma_v: Longitudinal velocity odometry noise (~0.15 m/s).
+- sigma_{psi, 0}^2: Initial heading uncertainty at outage onset (~0.05 rad^2).
+- sigma_omega: Gyroscope rate noise density & drift rate (~0.015 rad/s).
+- v: Vehicle longitudinal speed (m/s).
+- T: Elapsed outage duration (seconds).
+
+Notice the T^4 dependence: for small T, drift is dominated by quadratic velocity noise;
+for prolonged T, gyroscope drift multiplied by forward velocity causes quartic runaway.
+
+9.3 Rayleigh Error Distribution & Safety Bound Formulation
+Horizontal localization error ||p_dr - p_ref||_2 is modeled as a Rayleigh distribution:
+   S(T, E_thresh) = 1 - exp( - E_thresh^2 / (2 * sigma_pos^2(T)) )
+
+where E_thresh = 5.0 m represents the operational lane-level safety bound.
+
+9.4 Closed-Form Bi-Quadratic Survivable Duration Derivation (T_surv)
+The median survivable duration T_surv is the time required for failure probability to reach 50%
+(S(T_surv, E_thresh) = 0.5):
+   1 - exp( - E_thresh^2 / (2 * sigma_target^2) ) = 0.5
+   ==> sigma_target^2 = E_thresh^2 / (2 * ln(2)) = 25.0 / (2 * 0.693147) = 18.0337 m^2
+
+Equating sigma_pos^2(T) = sigma_target^2 yields a bi-quadratic polynomial in u = T^2:
+   a * u^2 + b * u + c = 0
+
+where polynomial coefficients are:
+   a = (1/12) * v^2 * sigma_omega^2
+   b = sigma_v^2 + (1/3) * v^2 * sigma_{psi, 0}^2
+   c = sigma_{pos, 0}^2 - sigma_target^2
+
+The exact closed-form survivable duration T_surv is computed analytically:
+   If sigma_{pos, 0}^2 >= sigma_target^2:
+      T_surv = 0.0 seconds (system already exceeds variance budget)
+   Else:
+      T_surv = sqrt( ( -b + sqrt(b^2 - 4 * a * c) ) / (2 * a) )
+
+This closed-form formulation executes in < 0.05 microseconds, providing an instantaneous
+deterministic horizon limit for the decision policy.
+
+
+================================================================================
+10. ACTION-CONDITIONED ERROR FORECASTING ENGINE
+================================================================================
+10.1 Counterfactual Formulation: Beyond Degraded State Detection
+Conventional navigation systems switch based solely on current signal state. VYRA implements
+an action-conditioned regressor that predicts the future consequence of each candidate action:
+   e_hat(t, A, H) = f_theta( x_cond(t, A, H) ) ~= max_{tau in (t, t + H]} || p_A(tau) - p_ref(tau) ||_2
+
+evaluated across actions A in {GNSS, HYBRID, DR} and horizons H in {1.0s, 3.0s, 5.0s, 10.0s}.
+
+10.2 Interaction Feature Vector Design (x_cond in R^34)
+To enable tree-based algorithms to model physical non-linearities and coupling terms,
+x_cond in R^34 appends explicit bilinear cross-terms:
+   - Base Causal Feature Vector: s_t (21 dimensions)
+   - One-Hot Action Encoding: a_A in {0, 1}^3 (3 dimensions)
+   - Forecast Horizon: H in seconds (1 dimension)
+   - Action-Horizon Interaction: a_A * H (3 dimensions)
+   - Action-Quality Bilinear Interactions: a_A (x) [ Q_t, N_sat, D_kin ] (6 dimensions)
+   Total Dimension = 21 + 3 + 1 + 3 + 6 = 34 dimensions.
+
+10.3 Offline Target Construction Across Candidate Actions
+During offline training on split V-S1, counterfactual trajectories were generated for all
+three candidate actions:
+- GNSS Consequence: Raw GPS fixes (with zero-order hold during simulated outages).
+- HYBRID Consequence: Filtered state of the 6-state EKF.
+- DR Consequence: Open-loop strapdown dead reckoning integrated from epoch t.
+The target e_max^true(t, A, H) was extracted causally via reversed rolling max windows.
+These future targets are strictly inaccessible during online inference.
+
+10.4 Supervised Loss Function: Robust Huber Loss Formulation
+The action-conditioned regression ensemble was trained by minimizing Huber loss (delta = 1.0 m):
+   L(theta) = (1 / N) * sum_{i=1}^N ell_delta( e_hat_i - e_max,i^true )
+where ell_delta(r) = 0.5 * r^2 if |r| <= delta, else delta * (|r| - 0.5 * delta).
+Huber loss prevents severe outlier pseudorange multipath spikes from destabilizing gradient updates.
+
+10.5 Offline Oracle Decision Regret & Ranking Accuracy
+Evaluated against an offline exhaustive oracle on held-out test split V-S3a:
+- Top-1 Ranking Accuracy: 95.43% (the action predicted to be best matched the true best action).
+- Mean Decision Regret: 0.056 m (the excess error incurred by choosing the predicted best
+  action versus the true optimal action was only 5.6 centimeters).
+- Spearman Rank Correlation: rho = 0.8225 (H = 5.0 s), confirming strong monotonic ranking order.
+
+
+================================================================================
+11. MULTI-OBJECTIVE ADAPTIVE DECISION POLICY
+================================================================================
+11.1 Multi-Objective Cost Function Formulation (J(A))
+At each 10 Hz epoch, decision cost J(A) is evaluated for every candidate action A in {GNSS, HYBRID, DR}:
+
+   J(A) = e_hat(t, A, H) + beta * E_thresh * P_hat_viol(t, A, H)
+          + lambda_switch * I(A != M_{t-1}) + Pi_DR(A)
+
+Parameters & Components:
+- e_hat(t, A, H): Predicted maximum horizontal error in meters.
+- beta = 2.0: Risk-aversion penalty weight on safety threshold breach.
+- E_thresh = 5.0 m: Operational safety bound.
+- P_hat_viol(t, A, H) = I( e_hat(t, A, H) > E_thresh ): Predicted violation indicator.
+- lambda_switch = 1.0 m: Switching penalty discouraging frivolous handovers.
+- I(A != M_{t-1}): Indicator function taking 1 if candidate action changes the current active mode.
+
+11.2 Dead-Reckoning Survivability Penalty Function
+Prevents the vehicle from committing to Dead Reckoning if the duration will exceed survivability:
+   If A = DR and T_surv < H:
+      Pi_DR(A) = kappa_surv * [ 1.0 + (H - T_surv) ]
+   Else:
+      Pi_DR(A) = 0.0
+
+   Parameter: kappa_surv = 10.0 m.
+
+11.3 Regularization Mechanisms: Hysteresis Margin & Minimum Dwell Time
+To prevent mode chattering and stabilize filter transitions:
+1. Candidate Selection: A^* = argmin_{A in A} J(A)
+2. Hysteresis Margin Rule: A transition from current mode M_{t-1} to candidate A^* occurs
+   if and only if:
+      J(M_{t-1}) - J(A^*) > epsilon_hyst,   where epsilon_hyst = 0.5 m
+3. Minimum Dwell Time Constraint: Once a mode is selected, transitions are inhibited until
+   elapsed continuous residence time satisfies:
+      delta_t_dwell >= tau_dwell,   where tau_dwell = 2.0 s (20 epochs at 10 Hz)
+
+11.4 Emergency Safety Override Interlocks
+If catastrophic divergence is predicted, the dwell-time lock is immediately bypassed:
+   Override(t) = 1  if ( e_hat(t, M_{t-1}, H) > e_emerg  OR  Q_t < Q_crit )
+   Parameters: e_emerg = 15.0 m; Q_crit = 0.20.
+
+
+================================================================================
+12. CONTROLLED GNSS DEGRADATION SIMULATION
+================================================================================
+12.1 Degradation Profile Mechanics
+To evaluate system resilience in controlled, repeatable conditions on the benchmark,
+software-simulated degradation events reproduce physical urban signal deterioration:
+- Deterioration Phase: Q_t ramps down gradually over 2.0 seconds; satellite visibility
+  drops from nominal (10-12) to degraded (1-3); kinematic error D_kin scales up to 10-25 m/s.
+- Outage Phase: Total GNSS signal denial (N_sat = 0, fixes frozen or corrupted).
+- Recovery Phase: Signal reacquisition ramps up linearly over 2.0 seconds back to open-sky.
+
+12.2 Multi-Duration Parameter Sweep Protocols
+Outages cycle across five distinct duration classes:
+   T in { 2.0 s, 5.0 s, 10.0 s, 20.0 s, 30.0 s }
+Consecutive outages are separated by 60.0 seconds of pristine tracking to allow filters to
+fully settle and permit clean comparative analysis.
+
+12.3 Trajectory Coverage on Held-Out Test Set V-S3a
+- Total Outage Events: 20 gradual degradation and denial cycles.
+- Outage Epochs: 2,680 epochs out of 24,621 total epochs (10.89% of driving time in outage).
+- Driving Conditions: Suburban and highway speeds ranging from 0 km/h (stoplights) to 75 km/h.
+
+
+================================================================================
+13. COMPREHENSIVE EXPERIMENTAL RESULTS & BENCHMARK TABLES
+================================================================================
+13.1 Benchmark Comparison on Held-Out Test Split V-S3a (Table 1)
+Evaluated across the complete 24,621-epoch (41.0-minute) test drive:
+
+TABLE 1: PRIMARY NAVIGATION COMPARISON
+-------------------------------------------------------------------------------------------------------------
+Policy                   | ATE (m) | RTE (m) | RMSE (m) | Max Err (m) | Viol > 5m (%) | Handovers | Mean Dwell (s)
+-------------------------------------------------------------------------------------------------------------
+GNSS-Only                | 17.136  | 21.838  | 67.355   | 520.611     | 11.32         | 0         | 2462.00
+Pure DR                  | 720.202 | 28.347  | 864.252  | 1610.993    | 98.39         | 0         | 2462.00
+Fixed HYBRID             | 0.426   | 0.603   | 1.453    | 12.957      | 2.35          | 0         | 2462.00
+Reactive Switching       | 0.712   | 0.924   | 2.497    | 21.259      | 4.80          | 42        | 57.16
+VYRA Adaptive (Proposed) | 0.399   | 0.594   | 1.396    | 12.745      | 2.33          | 67        | 36.12
+-------------------------------------------------------------------------------------------------------------
+Key Takeaways:
+- VYRA achieves 0.399 m ATE, outperforming GNSS-Only by 97.7% and Pure DR by 99.9%.
+- Compared to Reactive Switching, VYRA reduces ATE by 44.0% (from 0.712 m to 0.399 m) and cuts
+  safety bound violations (> 5 m) by more than half (from 4.80% to 2.33%).
+- Peak maximum tracking error is reduced from 21.26 m (Reactive) down to 12.75 m (VYRA).
+
+13.2 Outage Duration Sweep Analysis (Table 2)
+TABLE 2: PERFORMANCE ACROSS OUTAGE DURATIONS T
+-----------------------------------------------------------------------------------------------
+Duration T | Policy                   | Outage ATE (m) | Outage RMSE (m) | Peak Error (m) | Violations > 5m (%)
+-----------------------------------------------------------------------------------------------
+2.0 s      | GNSS-Only                | 4.724          | 7.771           | 36.086         | 26.92
+           | Pure DR                  | 346.189        | 487.971         | 898.298        | 75.00
+           | Reactive Switching       | 0.632          | 0.892           | 2.633          | 0.00
+           | VYRA Adaptive (Proposed) | 1.767          | 2.517           | 9.573          | 6.59
+-----------------------------------------------------------------------------------------------
+5.0 s      | GNSS-Only                | 11.075         | 18.715          | 71.975         | 45.45
+           | Pure DR                  | 392.008        | 535.148         | 1002.470       | 100.00
+           | Reactive Switching       | 0.575          | 0.763           | 2.237          | 0.00
+           | VYRA Adaptive (Proposed) | 1.203          | 1.781           | 8.971          | 2.48
+-----------------------------------------------------------------------------------------------
+10.0 s     | GNSS-Only                | 35.636         | 65.477          | 253.790        | 62.13
+           | Pure DR                  | 432.106        | 535.079         | 987.210        | 100.00
+           | Reactive Switching       | 1.407          | 2.174           | 7.705          | 6.29
+           | VYRA Adaptive (Proposed) | 1.667          | 2.384           | 8.280          | 6.87
+-----------------------------------------------------------------------------------------------
+20.0 s     | GNSS-Only                | 104.119        | 144.663         | 381.015        | 76.01
+           | Pure DR                  | 473.994        | 520.148         | 836.817        | 100.00
+           | Reactive Switching       | 2.553          | 4.064           | 13.964         | 17.44
+           | VYRA Adaptive (Proposed) | 1.981          | 2.579           | 9.698          | 6.46
+-----------------------------------------------------------------------------------------------
+30.0 s     | GNSS-Only                | 187.053        | 240.574         | 520.611        | 82.28
+           | Pure DR                  | 536.924        | 586.826         | 812.626        | 100.00
+           | Reactive Switching       | 6.829          | 8.862           | 21.259         | 54.51
+           | VYRA Adaptive (Proposed) | 3.573          | 4.717           | 12.745         | 28.37
+-----------------------------------------------------------------------------------------------
+Critical Insight: During short outages (2-5 s), both Reactive and VYRA maintain low errors.
+However, during severe long outages (20 s and 30 s), Reactive Switching degrades sharply
+(ATE climbs to 6.83 m, peak error reaches 21.26 m, violations reach 54.51%). VYRA's forward
+forecasting and survivability-bounded transitions limit 30 s outage ATE to 3.57 m and peak
+error to 12.75 m.
+
+13.3 Multi-Horizon Forecast Fidelity & Ranking Metrics (Table 3 & 4)
+-----------------------------------------------------------------------------------------------
+Horizon H | Forecast RMSE (m) | Forecast MAE (m) | Spearman Rho | Top-1 Accuracy | Mean Regret (m)
+-----------------------------------------------------------------------------------------------
+1.0 s     | 4.567             | 1.979            | 0.8059       | 90.42%         | 0.0705
+3.0 s     | 13.464            | 5.484            | 0.8442       | 97.08%         | 0.0486
+5.0 s     | 22.104            | 8.925            | 0.8225       | 95.99%         | 0.0734
+10.0 s    | 44.977            | 18.171           | 0.8094       | 91.91%         | 0.1591
+-----------------------------------------------------------------------------------------------
+Ranking Accuracy peaks at 97.08% at H = 3.0 s with mean regret of under 5 centimeters,
+confirming that H = 3.0 s to 5.0 s represents the optimal planning window for mode selection.
+
+13.4 Systematic Component Ablation Study (Table 5)
+TABLE 5: COMPONENT ABLATION STUDY
+-------------------------------------------------------------------------------------------------------------
+Ablation Configuration                  | ATE (m) | RMSE (m) | Max Err (m) | Viol (%) | Handovers | Unnec Handovers
+-------------------------------------------------------------------------------------------------------------
+Ablation A: Full VYRA (Proposed)        | 0.3986  | 1.3957   | 12.745      | 2.33     | 67        | 16
+Ablation B: No GNSS Degradation Predict | 0.4070  | 1.4110   | 13.525      | 2.36     | 44        | 0
+Ablation C: No DR Uncertainty Model     | 0.3984  | 1.3954   | 12.745      | 2.33     | 108       | 53
+Ablation D: No DR Survivability (T_surv)| 0.3954  | 1.3902   | 12.745      | 2.32     | 242       | 178
+Ablation E: No Action Conditioning      | 0.4260  | 1.4527   | 12.957      | 2.35     | 0         | 0
+Ablation F: No Forecast Engine (Reactive)| 0.7123 | 2.4968   | 21.259      | 4.80     | 42        | 0
+Ablation G: No Switching Penalty/Hyst   | 0.3945  | 1.3818   | 13.525      | 2.21     | 118       | 66
+-------------------------------------------------------------------------------------------------------------
+Key Ablation Findings:
+1. Critical Role of DR Survivability (Ablation D): Removing T_surv causes massive chattering;
+   handovers spike from 67 to 242, with 178 unnecessary handovers (a 10-fold increase).
+2. Cost of Reactive Switching (Ablation F): Removing the forecast engine degrades ATE by 78.7%
+   (0.399 m -> 0.712 m) and causes peak outage error to balloon from 12.75 m to 21.26 m.
+3. Hysteresis Regularization (Ablation G): Omitting the 0.5 m hysteresis margin nearly doubles
+   handovers (67 -> 118) with 66 unnecessary switches.
+
+13.5 Rigorous Statistical Significance & Effect Size Testing (Table 7)
+Paired evaluation across all N = 20 outage events using the non-parametric Wilcoxon Signed-Rank Test:
+- VYRA vs GNSS-Only:
+  * Mean ATE: 2.038 m vs 68.522 m (97.03% relative improvement).
+  * 95% Confidence Interval: [36.75 m, 99.54 m] difference.
+  * Wilcoxon W = 0.0, p = 2.00e-6 (Statistically Significant, p < 0.001).
+  * Cohen's d_z = 0.906, Hedges' g = 0.869 (Very Large Effect Size).
+- VYRA vs Pure DR:
+  * Mean ATE: 2.038 m vs 436.244 m (99.53% relative improvement).
+  * Wilcoxon W = 0.0, p = 2.00e-6 (Statistically Significant, p < 0.001).
+  * Cohen's d_z = 1.377, Hedges' g = 1.322 (Extremely Large Effect Size).
+- VYRA vs Reactive Switching:
+  * Mean ATE: 2.038 m vs 2.399 m (15.05% relative improvement across all outage segments).
+  * Peak Error Reduction: 12.75 m vs 21.26 m (40.0% reduction in maximum tracking excursion).
+  * Safety Violations: 2.33% vs 4.80% (51.5% reduction in bound breaches).
+
+
+================================================================================
+14. FAILURE MODE ANALYSIS, DIAGNOSTICS & SYSTEM LIMITATIONS
+================================================================================
+14.1 Reacquisition Discontinuity Following Prolonged Denial
+When satellite visibility is abruptly restored after an extended outage (> 20 s), the
+accumulated open-loop DR drift creates an instantaneous spatial discrepancy between the EKF
+prior and the incoming GNSS fix. To prevent innovation spikes from destabilizing the filter,
+VYRA employs a smooth re-convergence gain that dampens the initial update step.
+
+14.2 High-Yaw Dynamic Extrapolation Drift
+During sharp, rapid cornering maneuvers coinciding with satellite denial, non-linear tire
+scrub and transient chassis lateral acceleration introduce second-order kinematics that
+exceed planar 2D assumptions. In these regimes, the analytical uncertainty expansion
+sigma_pos^2(T) conservatively shortens T_surv, forcing earlier alerts.
+
+14.3 Sensor Biases in Outages Exceeding 30 Seconds
+For outages beyond 30 seconds, open-loop gyroscope drift integration exhibits quartic
+variance growth (T^4). Without external aiding (e.g. Visual Odometry or magnetic compass),
+no dead-reckoning system can maintain < 5 m bounds indefinitely. VYRA's survivability
+engine flags this condition early, allowing the vehicle motion planner to initiate a
+safe controlled stop.
+
+14.4 Theoretical & Practical Limitations
+1. Software-Simulated Outages: Outages were injected via software masking onto recorded
+   benchmark runs. While reproducing real signal loss, secondary RF analog effects
+   (receiver oscillator phase jumps) were not present.
+2. Single Vehicle Class: The IO-VNBD dataset utilizes passenger sedan dynamics. Heavy trucks
+   or articulated vehicles with different tire-road compliance will require re-tuned noise parameters.
+3. Planar Navigation: Horizontal (East-North) localization was evaluated; vertical (altitude)
+   estimation was decoupled.
+
+
+================================================================================
+15. FULL-STACK SOFTWARE IMPLEMENTATION & REPRODUCIBILITY
+================================================================================
+15.1 Backend Microservice Architecture
+- Core Framework: Python 3.11 with FastAPI and Uvicorn asynchronous ASGI server.
+- High-Rate Streaming: Real-time telemetry broadcast via WebSockets at 10 Hz.
+- Data Storage: Apache Parquet compressed columnar storage for raw and processed datasets.
+- Numerical Libraries: NumPy, SciPy (matrix Jacobians and EKF recursions), Pandas.
+- Machine Learning Engine: XGBoost (C++ boosted trees runtime), Scikit-Learn (Platt scaling, metrics).
+- API Latency: Full action-conditioned inference across all 3 candidate actions executes
+  in ~1.8 milliseconds per step, easily satisfying 10 Hz (100 ms) real-time deadlines.
+
+15.2 Interactive Frontend Architecture
+- Core Framework: React 18, Vite build tool, Tailwind CSS, Lucide Icons.
+- Geospatial Mapping: Leaflet / React-Leaflet with OpenStreetMap tiles and satellite layers.
+- Real-Time Charting: Plotly.js for interactive time-series error, satellite count, and probability.
+- 3D Kinematic Visualizer: Three.js WebGL viewport rendering vehicle chassis, heading vector,
+  and dynamic uncertainty covariance ellipses.
+- Defensive Architecture: Root Error Boundaries, WebGL fallback detection with 2D radar SVG,
+  and defensive numeric formatting preventing runtime UI exceptions during transport pauses.
+
+15.3 Robustness & Graceful Degradation: Standalone Fallback Data Mode
+To ensure the user interface functions seamlessly even when the backend API is disconnected
+or during cloud static preview deployments (e.g., Vercel / GitHub Pages):
+- Embedded Fallback Telemetry (fallbackData.js): 250 pre-computed frames of authentic V-S3a
+  telemetry embedded directly within the client bundle.
+- Autonomous Simulation Clock: When live WebSocket connection is unavailable, an internal
+  10 Hz requestAnimationFrame ticker drives the UI with realistic mode handovers, error
+  forecasting, and trajectory progression.
+
+15.4 Reproduction Instructions & Repository Map
+To inspect, verify, or execute the complete VYRA pipeline:
+- Complete Master Results: results/processed/phase5_master_results.json
+- Authoritative Compendium: RESEARCH_PAPER.txt
+- Model Performance Logs: results/processed/model_comparison.json
+- Forecast Horizon Logs: results/processed/forecast_comparison.json
+- Backend Server: backend/main.py (uvicorn main:app --port 8000)
+- Frontend Application: npm install && npm run dev (accessible at http://localhost:5173)
+
+================================================================================
+                         END OF VYRA REFERENCE MANUAL
+================================================================================

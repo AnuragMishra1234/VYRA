@@ -2,6 +2,7 @@ import React from 'react';
 import LandingNavbar from './LandingNavbar';
 import Hero3D from './Hero3D';
 import ProblemSection from './ProblemSection';
+import InteractiveSimulatorSection from './InteractiveSimulatorSection';
 import ThreePossibilities3D from './ThreePossibilities3D';
 import HowVyraThinks from './HowVyraThinks';
 import DifferentiatorSection from './DifferentiatorSection';
@@ -9,9 +10,11 @@ import ForecastVisualizer from './ForecastVisualizer';
 import ArchitectureSection from './ArchitectureSection';
 import ValidatedResultsSection from './ValidatedResultsSection';
 import OutageDemoSection from './OutageDemoSection';
+import TechStackSection from './TechStackSection';
+import FaqSection from './FaqSection';
 import LandingFooter from './LandingFooter';
 import ResearchModal from '../ResearchModal';
-import { Play, ArrowRight, Compass, ShieldCheck } from 'lucide-react';
+import { Play, ArrowRight, Compass, ShieldCheck, FileText } from 'lucide-react';
 
 export default function LandingPage({
   onLaunchPrototype,
@@ -44,28 +47,37 @@ export default function LandingPage({
       {/* 2. "The Problem" Section */}
       <ProblemSection />
 
-      {/* 3. "Three Possibilities" 3D Section */}
+      {/* 3. Interactive DR Survivability Simulator Section */}
+      <InteractiveSimulatorSection />
+
+      {/* 4. "Three Possibilities" 3D Section */}
       <ThreePossibilities3D />
 
-      {/* 4. "How VYRA Thinks" Pipeline Section */}
+      {/* 5. "How VYRA Thinks" Pipeline Section */}
       <HowVyraThinks />
 
-      {/* 5. Core Differentiator Section */}
+      {/* 6. Core Differentiator Section */}
       <DifferentiatorSection />
 
-      {/* 6. Forecast Visualization Section */}
+      {/* 7. Forecast Visualization Section */}
       <ForecastVisualizer />
 
-      {/* 7. System Architecture Section */}
+      {/* 8. System Architecture Section */}
       <ArchitectureSection />
 
-      {/* 8. Validated Research Results Section */}
+      {/* 9. Validated Research Results Section */}
       <ValidatedResultsSection onOpenResearchModal={onOpenResearchModal} />
 
-      {/* 9. Outage Lifecycle Demo Section */}
+      {/* 10. Outage Lifecycle Demo Section */}
       <OutageDemoSection />
 
-      {/* 10. Call to Action Section (Transition to Live Prototype) */}
+      {/* 11. Engineering Tech Stack Section */}
+      <TechStackSection />
+
+      {/* 12. Deep Technical FAQ Section */}
+      <FaqSection />
+
+      {/* 13. Call to Action Section (Transition to Live Prototype) */}
       <section className="py-24 bg-gradient-to-b from-[#060911] to-[#0b101f] border-t border-slate-800 text-center relative">
         <div className="max-w-4xl mx-auto px-6">
           <div className="inline-flex items-center gap-2 text-xs font-mono uppercase text-cyan-400 tracking-widest mb-4">
@@ -98,10 +110,20 @@ export default function LandingPage({
             >
               <span>INSPECT EVIDENCE TABLES</span>
             </button>
+
+            <a
+              href="/VYRA_COMPLETE_PROJECT_DETAILS.txt"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-6 py-4 rounded-xl font-semibold font-mono text-xs tracking-wider uppercase bg-blue-950/40 hover:bg-blue-900/40 text-cyan-300 hover:text-white border border-blue-900/60 transition flex items-center gap-2"
+            >
+              <FileText className="w-4 h-4 text-cyan-400" />
+              <span>READ 6-PAGE MANUAL (.TXT)</span>
+            </a>
           </div>
 
           <div className="mt-8 text-[11px] font-mono text-slate-500">
-            Connected to Phase 6 FastAPI Backend &bull; Parquet Replay Engine (10 Hz)
+            Connected to Phase 6 FastAPI Backend &bull; Parquet Replay Engine (10 Hz) &bull; Standalone Fallback Ready
           </div>
         </div>
       </section>
