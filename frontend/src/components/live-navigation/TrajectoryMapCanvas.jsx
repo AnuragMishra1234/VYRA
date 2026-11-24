@@ -7,36 +7,29 @@ export default function TrajectoryMapCanvas({
   pathsData = null,
   isOutage = false,
 }) {
+  const containerRef = useRef(null);
   const canvasRef = useRef(null);
   const [zoom, setZoom] = useState(1.0);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
 
-  // Fallback bounds if pathsData is not ready
-  const minLat = 52.368;
-  const maxLat = 52.378;
-  const minLon = -1.265;
-  const maxLon = -1.250;
-
-  // Convert geodetic (lat, lon) to canvas (x, y)
-  const projectCoord = (lat, lon, width, height) => {
-    const padding = 50;
-    const normX = (lon - minLon) / (maxLon - minLon);
-    const normY = 1.0 - (lat - minLat) / (maxLat - minLat); // Invert Y for canvas
-
-    const rawX = padding + normX * (width - 2 * padding);
-    const rawY = padding + normY * (height - 2 * padding);
-
-    // Apply zoom and offset around center
-    const centerX = width / 2;
-    const centerY = height / 2;
-
-    const x = centerX + (rawX - centerX + offset.x) * zoom;
-    const y = centerY + (rawY - centerY + offset.y) * zoom;
-
-    return { x, y };
-  };
+  // Responsive canvas sizing
+  useEffect(() => {
+    const updateSize = () => {
+      if (containerRef.current && canvasRef.current) {
+        const w = containerRef.current.clientWidth || 900;
+        const h = containerRef.current.clientHeight || 520;
+        if (canvasRef.current.width !== w || canvasRef.current.height !== h) {
+          canvasRef.current.width = w;
+          canvasRef.current.height = h;
+        }
+      }
+    };
+    updateSize();
+    window.addEventListener('resize', updateSize);
+    return () => window.removeEventListener('resize', updateSize);
+  }, []);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -45,44 +38,123 @@ export default function TrajectoryMapCanvas({
     const width = canvas.width;
     const height = canvas.height;
 
+    // 1. Dynamic Center from Active Vehicle Coordinates
+    const currentCoord =
+      telemetry?.vyra_coord ||
+      telemetry?.gt_coord ||
+      (history.length > 0
+        ? history[history.length - 1]?.vyra_coord || history[history.length - 1]?.gt_coord
+        : null) || { lat: 52.406254, lon: -1.481777 };
+
+    const centerLat = currentCoord.lat;
+    const centerLon = currentCoord.lon;
+
+    const mPerDegLat = 111320.0;
+    const mPerDegLon = 111320.0 * Math.cos((centerLat * Math.PI) / 180);
+    const pxPerMeter = 2.6 * zoom;
+
+    const projectCoord = (lat, lon) => {
+      const dx = (lon - centerLon) * mPerDegLon;
+      const dy = (lat - centerLat) * mPerDegLat;
+      const x = width / 2 + (dx * pxPerMeter + offset.x);
+      const y = height / 2 - (dy * pxPerMeter - offset.y);
+      return { x, y };
+    };
+
     // Clear background
     ctx.fillStyle = '#060a14';
     ctx.fillRect(0, 0, width, height);
 
-    // 1. Draw subtle grid lines
-    ctx.strokeStyle = '#111928';
+    // 2. Metric Grid Lines (50 meters per square)
+    ctx.strokeStyle = '#0f172a';
     ctx.lineWidth = 1;
-    const gridSize = 40 * zoom;
-    for (let x = (offset.x * zoom) % gridSize; x < width; x += gridSize) {
-      ctx.beginPath();
-      ctx.moveTo(x, 0);
-      ctx.lineTo(x, height);
-      ctx.stroke();
-    }
-    for (let y = (offset.y * zoom) % gridSize; y < height; y += gridSize) {
-      ctx.beginPath();
-      ctx.moveTo(0, y);
-      ctx.lineTo(width, y);
-      ctx.stroke();
+    const gridStepPx = 50 * pxPerMeter;
+    if (gridStepPx > 10) {
+      const startX = (((width / 2 + offset.x) % gridStepPx) + gridStepPx) % gridStepPx;
+      for (let x = startX; x < width; x += gridStepPx) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, height);
+        ctx.stroke();
+      }
+      const startY = (((height / 2 - offset.y) % gridStepPx) + gridStepPx) % gridStepPx;
+      for (let y = startY; y < height; y += gridStepPx) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(width, y);
+        ctx.stroke();
+      }
     }
 
-    // 2. Draw ground truth reference path if available
-    const gtPath = pathsData?.offline_reference_gt || [];
-    if (gtPath.length > 1) {
-      ctx.strokeStyle = 'rgba(100, 116, 139, 0.4)';
-      ctx.lineWidth = 2.5;
-      ctx.setLineDash([4, 4]);
+    // 3. Ground truth reference road path
+    const rawGt = pathsData?.paths?.offline_reference_gt || pathsData?.offline_reference_gt || [];
+    const allGtPoints = rawGt
+      .map((pt) => {
+        if (Array.isArray(pt)) return { lat: pt[0], lon: pt[1] };
+        if (pt && pt.lat !== undefined) return { lat: pt.lat, lon: pt.lon };
+        return null;
+      })
+      .filter(Boolean);
+
+    const visibleGt = allGtPoints.filter((pt) => {
+      const dLat = Math.abs(pt.lat - centerLat) * mPerDegLat;
+      const dLon = Math.abs(pt.lon - centerLon) * mPerDegLon;
+      return dLat < 800 && dLon < 800;
+    });
+
+    if (visibleGt.length > 1) {
+      // Road surface
+      ctx.strokeStyle = '#151f38';
+      ctx.lineWidth = Math.max(16, 12 * pxPerMeter);
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
       ctx.beginPath();
-      gtPath.forEach((pt, i) => {
-        const { x, y } = projectCoord(pt.lat, pt.lon, width, height);
+      visibleGt.forEach((pt, i) => {
+        const { x, y } = projectCoord(pt.lat, pt.lon);
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      });
+      ctx.stroke();
+
+      // Dotted Centerline
+      ctx.strokeStyle = '#475569';
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([8, 8]);
+      ctx.beginPath();
+      visibleGt.forEach((pt, i) => {
+        const { x, y } = projectCoord(pt.lat, pt.lon);
         if (i === 0) ctx.moveTo(x, y);
         else ctx.lineTo(x, y);
       });
       ctx.stroke();
       ctx.setLineDash([]);
+    } else {
+      // Fallback road corridor
+      const heading = (telemetry?.heading_deg || 45) * (Math.PI / 180);
+      const roadDirX = Math.sin(heading);
+      const roadDirY = Math.cos(heading);
+      const ptA = projectCoord(centerLat - (roadDirY * 350) / mPerDegLat, centerLon - (roadDirX * 350) / mPerDegLon);
+      const ptB = projectCoord(centerLat + (roadDirY * 350) / mPerDegLat, centerLon + (roadDirX * 350) / mPerDegLon);
+
+      ctx.strokeStyle = '#151f38';
+      ctx.lineWidth = Math.max(16, 12 * pxPerMeter);
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(ptA.x, ptA.y);
+      ctx.lineTo(ptB.x, ptB.y);
+      ctx.stroke();
+
+      ctx.strokeStyle = '#475569';
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([8, 8]);
+      ctx.beginPath();
+      ctx.moveTo(ptA.x, ptA.y);
+      ctx.lineTo(ptB.x, ptB.y);
+      ctx.stroke();
+      ctx.setLineDash([]);
     }
 
-    // 3. Draw historical breadcrumb trajectory colored by navigation mode
+    // 4. Historical breadcrumb trajectory
     if (history.length > 1) {
       for (let i = 1; i < history.length; i++) {
         const p0 = history[i - 1];
@@ -92,20 +164,20 @@ export default function TrajectoryMapCanvas({
         const coord1 = p1.vyra_coord || p1.gt_coord;
 
         if (coord0 && coord1) {
-          const pt0 = projectCoord(coord0.lat, coord0.lon, width, height);
-          const pt1 = projectCoord(coord1.lat, coord1.lon, width, height);
+          const pt0 = projectCoord(coord0.lat, coord0.lon);
+          const pt1 = projectCoord(coord1.lat, coord1.lon);
 
-          // Color by active mode: GNSS -> Blue, HYBRID -> Green, DR -> Orange
           const mode = p1.selected_mode || 'HYBRID';
           if (mode === 'DR') {
-            ctx.strokeStyle = '#f97316'; // Orange
+            ctx.strokeStyle = '#f97316';
           } else if (mode === 'GNSS') {
-            ctx.strokeStyle = '#38bdf8'; // Blue
+            ctx.strokeStyle = '#38bdf8';
           } else {
-            ctx.strokeStyle = '#10b981'; // Green
+            ctx.strokeStyle = '#10b981';
           }
 
-          ctx.lineWidth = 3;
+          ctx.lineWidth = 3.5;
+          ctx.lineCap = 'round';
           ctx.beginPath();
           ctx.moveTo(pt0.x, pt0.y);
           ctx.lineTo(pt1.x, pt1.y);
@@ -114,31 +186,29 @@ export default function TrajectoryMapCanvas({
       }
     }
 
-    // 4. Draw GNSS Raw Measurement Position (with jitter/divergence during outage)
+    // 5. Draw GNSS Raw Measurement Position
     const gnssPt = telemetry?.gnss_coord;
     if (gnssPt && !isOutage) {
-      const { x, y } = projectCoord(gnssPt.lat, gnssPt.lon, width, height);
+      const { x, y } = projectCoord(gnssPt.lat, gnssPt.lon);
       ctx.fillStyle = 'rgba(56, 189, 248, 0.8)';
       ctx.beginPath();
       ctx.arc(x, y, 4, 0, Math.PI * 2);
       ctx.fill();
     }
 
-    // 5. Draw Current Vehicle Position & Heading
-    const currentCoord = telemetry?.vyra_coord || telemetry?.gt_coord;
+    // 6. Draw Current Vehicle Position & Heading
     if (currentCoord) {
-      const { x, y } = projectCoord(currentCoord.lat, currentCoord.lon, width, height);
+      const { x, y } = projectCoord(currentCoord.lat, currentCoord.lon);
 
-      // Uncertainty covariance ellipse ring
       const mode = telemetry?.selected_mode || 'HYBRID';
       const ringColor =
         mode === 'DR'
-          ? 'rgba(249, 115, 22, 0.3)'
+          ? 'rgba(249, 115, 22, 0.25)'
           : mode === 'GNSS'
-          ? 'rgba(56, 189, 248, 0.3)'
-          : 'rgba(16, 185, 129, 0.3)';
+          ? 'rgba(56, 189, 248, 0.25)'
+          : 'rgba(16, 185, 129, 0.25)';
 
-      const errRadius = Math.max(8, Math.min(40, (telemetry?.current_error_m || 1.0) * 8 * zoom));
+      const errRadius = Math.max(12, Math.min(45, (telemetry?.current_error_m || 1.0) * 12 * zoom));
       ctx.fillStyle = ringColor;
       ctx.beginPath();
       ctx.arc(x, y, errRadius, 0, Math.PI * 2);
@@ -152,13 +222,12 @@ export default function TrajectoryMapCanvas({
       ctx.translate(x, y);
       ctx.rotate(rad);
 
-      // Vehicle triangle marker
       ctx.fillStyle = mode === 'DR' ? '#f97316' : mode === 'GNSS' ? '#0ea5e9' : '#10b981';
       ctx.beginPath();
-      ctx.moveTo(12, 0);
-      ctx.lineTo(-8, -7);
-      ctx.lineTo(-4, 0);
-      ctx.lineTo(-8, 7);
+      ctx.moveTo(14, 0);
+      ctx.lineTo(-9, -8);
+      ctx.lineTo(-5, 0);
+      ctx.lineTo(-9, 8);
       ctx.closePath();
       ctx.fill();
       ctx.strokeStyle = '#ffffff';
@@ -166,6 +235,10 @@ export default function TrajectoryMapCanvas({
       ctx.stroke();
 
       ctx.restore();
+
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 11px monospace';
+      ctx.fillText('VYRA (TRACKING)', x + 16, y + 4);
     }
   }, [telemetry, history, pathsData, zoom, offset, isOutage]);
 
@@ -191,7 +264,10 @@ export default function TrajectoryMapCanvas({
   };
 
   return (
-    <div className="relative w-full h-[460px] sm:h-[520px] rounded-2xl overflow-hidden border border-slate-800 bg-[#060a14] select-none">
+    <div
+      ref={containerRef}
+      className="relative w-full h-[460px] sm:h-[520px] rounded-2xl overflow-hidden border border-slate-800 bg-[#060a14] select-none shadow-2xl"
+    >
       <canvas
         ref={canvasRef}
         width={900}
@@ -243,13 +319,13 @@ export default function TrajectoryMapCanvas({
         <div>
           Lat:{' '}
           <span className="text-white">
-            {(telemetry?.vyra_coord?.lat || telemetry?.gt_coord?.lat || 52.3708).toFixed(6)}°
+            {(telemetry?.vyra_coord?.lat || telemetry?.gt_coord?.lat || 52.406254).toFixed(6)}°
           </span>
         </div>
         <div>
           Lon:{' '}
           <span className="text-white">
-            {(telemetry?.vyra_coord?.lon || telemetry?.gt_coord?.lon || -1.2543).toFixed(6)}°
+            {(telemetry?.vyra_coord?.lon || telemetry?.gt_coord?.lon || -1.481777).toFixed(6)}°
           </span>
         </div>
       </div>

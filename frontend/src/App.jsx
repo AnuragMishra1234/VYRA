@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import LandingPage from './components/landing/LandingPage';
 import PrototypeView from './components/prototype/PrototypeView';
 import LiveNavigationPage from './components/live-navigation/LiveNavigationPage';
+import ErrorBoundary from './components/ErrorBoundary';
 import {
   fetchPlaybackState,
   sendPlaybackControl,
@@ -297,13 +298,15 @@ export default function App() {
           onLaunchLiveNavigation={launchLiveNavigation}
         />
       ) : (
-        <LiveNavigationPage
-          telemetry={telemetry}
-          pathsData={pathsData}
-          isConnected={isConnected}
-          onBackToLanding={backToLanding}
-          onLaunchPrototype={launchPrototype}
-        />
+        <ErrorBoundary>
+          <LiveNavigationPage
+            telemetry={telemetry}
+            pathsData={pathsData}
+            isConnected={isConnected}
+            onBackToLanding={backToLanding}
+            onLaunchPrototype={launchPrototype}
+          />
+        </ErrorBoundary>
       )}
     </>
   );

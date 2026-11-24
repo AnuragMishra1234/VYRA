@@ -26,6 +26,7 @@ export default function GpsSignalLossDemoTab({
   pathsData,
   onRecordHistory,
   onOpenSimulator,
+  onOpenIntelligence,
 }) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(1500); // Curvature drive segment
@@ -45,6 +46,24 @@ export default function GpsSignalLossDemoTab({
   const [methodsUsed, setMethodsUsed] = useState(['Combined Navigation']);
   const [hasSwitched, setHasSwitched] = useState(false);
   const [switchReason, setSwitchReason] = useState('');
+
+  // Preload initial 30 epochs on mount so vehicle and road trajectory are instantly visible
+  useEffect(() => {
+    let isMounted = true;
+    async function preloadInitial() {
+      const startIdx = Math.max(0, currentIndex - 30);
+      const slice = await fetchSimulationSlice(startIdx, 31);
+      if (isMounted && slice?.epochs && slice.epochs.length > 0) {
+        setHistory(slice.epochs);
+        const lastEpoch = slice.epochs[slice.epochs.length - 1];
+        setCurrentTel(lastEpoch);
+      }
+    }
+    preloadInitial();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   // Ticker for smooth playback
   useEffect(() => {
@@ -144,7 +163,7 @@ export default function GpsSignalLossDemoTab({
     }
   };
 
-  const handleResetDemo = () => {
+  const handleResetDemo = async () => {
     setIsPlaying(false);
     setCurrentIndex(1500);
     setIsGpsLost(false);
@@ -152,10 +171,18 @@ export default function GpsSignalLossDemoTab({
     setGpsLostCoord(null);
     setGpsLostDuration(0);
     setOutageRemaining(0);
-    setHistory([]);
     setDemoCompleted(false);
     setHasSwitched(false);
     setMethodsUsed(['Combined Navigation']);
+    try {
+      const slice = await fetchSimulationSlice(1470, 31);
+      if (slice?.epochs && slice.epochs.length > 0) {
+        setHistory(slice.epochs);
+        setCurrentTel(slice.epochs[slice.epochs.length - 1]);
+      }
+    } catch {
+      // ignore
+    }
   };
 
   const getActiveMethodName = () => {
@@ -411,7 +438,18 @@ export default function GpsSignalLossDemoTab({
             <Info className="w-4 h-4 text-cyan-400" />
             <span>Demonstration Summary & Results</span>
           </h3>
-          <span className="text-xs font-mono text-slate-400">Examiner Evaluation Card</span>
+          <div className="flex items-center gap-2">
+            {onOpenIntelligence && (
+              <button
+                onClick={onOpenIntelligence}
+                className="px-2.5 py-1 rounded-lg text-xs font-mono font-bold bg-blue-600/30 hover:bg-blue-600 text-blue-300 hover:text-white border border-blue-500/50 transition flex items-center gap-1.5"
+              >
+                <span>Deep Audit in Intelligence Core</span>
+                <ArrowRight className="w-3 h-3" />
+              </button>
+            )}
+            <span className="text-xs font-mono text-slate-400 hidden sm:inline">Examiner Evaluation Card</span>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-xs font-mono">

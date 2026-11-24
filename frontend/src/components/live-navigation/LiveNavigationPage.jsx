@@ -16,6 +16,7 @@ import {
   Menu,
   X,
   ShieldAlert,
+  Cpu,
 } from 'lucide-react';
 import GpsSignalLossDemoTab from './tabs/GpsSignalLossDemoTab';
 import OverviewTab from './tabs/OverviewTab';
@@ -24,6 +25,7 @@ import WhatIfLabTab from './tabs/WhatIfLabTab';
 import AlgorithmComparisonLabTab from './tabs/AlgorithmComparisonLabTab';
 import ExperimentHistoryTab from './tabs/ExperimentHistoryTab';
 import ReportGeneratorTab from './tabs/ReportGeneratorTab';
+import EngineeringIntelligenceCoreTab from './intelligence/EngineeringIntelligenceCoreTab';
 import VyraBot from './VyraBot';
 
 const INITIAL_HISTORY = [
@@ -112,6 +114,7 @@ export default function LiveNavigationPage({
 
   const navTabs = [
     { id: 'demo', label: 'Live GPS Loss Demo', icon: ShieldAlert },
+    { id: 'intelligence', label: 'Intelligence Core', icon: Cpu },
     { id: 'simulator', label: 'Advanced Simulator', icon: Zap },
     { id: 'what-if', label: 'What-If Scenario Lab', icon: Sliders },
     { id: 'comparison', label: 'Algorithm Comparison', icon: BarChart3 },
@@ -293,6 +296,14 @@ export default function LiveNavigationPage({
             pathsData={pathsData}
             onRecordHistory={recordNewRun}
             onOpenSimulator={() => setActiveTab('simulator')}
+            onOpenIntelligence={() => setActiveTab('intelligence')}
+          />
+        )}
+        {activeTab === 'intelligence' && (
+          <EngineeringIntelligenceCoreTab
+            globalTelemetry={telemetry}
+            pathsData={pathsData}
+            onRecordHistory={recordNewRun}
           />
         )}
         {activeTab === 'overview' && (

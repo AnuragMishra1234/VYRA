@@ -18,6 +18,7 @@ from backend.routes.playback import router as playback_router
 from backend.routes.results import router as results_router
 from backend.routes.trajectories import router as trajectories_router
 from backend.routes.live_navigation import router as live_navigation_router
+from backend.routes.intelligence_core import router as intelligence_router
 
 # Configure logging
 logging.basicConfig(
@@ -47,6 +48,7 @@ app.include_router(playback_router, prefix="/api")
 app.include_router(results_router, prefix="/api")
 app.include_router(trajectories_router, prefix="/api")
 app.include_router(live_navigation_router, prefix="/api")
+app.include_router(intelligence_router, prefix="/api")
 
 # Mount static figures directory
 repo_root = Path(__file__).resolve().parent.parent
@@ -95,6 +97,22 @@ if frontend_dist.is_dir():
             shutil.copy2(public_logo, dist_logo)
         except Exception:
             pass
+
+    # Explicit SPA client routes returning index.html for direct browser navigation & refreshes
+    @app.get("/live-navigation")
+    async def serve_live_navigation_spa():
+        index_file = frontend_dist / "index.html"
+        if index_file.is_file():
+            return FileResponse(index_file)
+        return {"error": "Frontend build index.html not found"}
+
+    @app.get("/prototype")
+    async def serve_prototype_spa():
+        index_file = frontend_dist / "index.html"
+        if index_file.is_file():
+            return FileResponse(index_file)
+        return {"error": "Frontend build index.html not found"}
+
     app.mount("/", StaticFiles(directory=str(frontend_dist), html=True), name="frontend")
     logger.info("Mounted frontend static application from %s", frontend_dist)
 else:
