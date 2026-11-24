@@ -17,6 +17,7 @@ import {
   X,
   ShieldAlert,
   Cpu,
+  Smartphone,
 } from 'lucide-react';
 import GpsSignalLossDemoTab from './tabs/GpsSignalLossDemoTab';
 import OverviewTab from './tabs/OverviewTab';
@@ -64,6 +65,7 @@ export default function LiveNavigationPage({
   isConnected,
   onBackToLanding,
   onLaunchPrototype,
+  onLaunchTryLive,
 }) {
   const [activeTab, setActiveTab] = useState('demo'); // 'demo' (default landing!), 'simulator', 'what-if', 'comparison', 'overview', 'history', 'reports'
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -151,6 +153,17 @@ export default function LiveNavigationPage({
               >
                 <LayoutDashboard className="w-3.5 h-3.5 text-cyan-400" />
                 <span>Replay Dashboard</span>
+              </button>
+            )}
+
+            {onLaunchTryLive && (
+              <button
+                onClick={onLaunchTryLive}
+                className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-mono font-bold text-cyan-200 bg-cyan-950/80 hover:bg-cyan-900 border border-cyan-500/50 shadow-lg shadow-cyan-950/40 transition"
+                title="Connect your Android phone as a live sensor device"
+              >
+                <Smartphone className="w-3.5 h-3.5 text-cyan-400" />
+                <span>TRY-LIVE</span>
               </button>
             )}
 

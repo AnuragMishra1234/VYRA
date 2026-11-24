@@ -413,4 +413,142 @@ export async function fetchDecisionInspection(epochIndex, experimentId = null) {
   }
 }
 
+// ==========================================
+// TRY-LIVE: Real-Time Mobile Sensor Demonstration API
+// ==========================================
+
+export async function createTryLiveSession(port = 8000, hostOverride = null) {
+  try {
+    const res = await fetch(`${API_BASE}/api/try-live/session?port=${port}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ client_name: 'Laptop Dashboard', host_override: hostOverride }),
+      signal: AbortSignal.timeout(5000),
+    });
+    if (!res.ok) throw new Error(`Create TryLive session failed: ${res.statusText}`);
+    return await res.json();
+  } catch (err) {
+    console.warn('Backend createTryLiveSession failed, creating client fallback session:', err);
+    const randId = `SES-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+    const localHost = typeof window !== 'undefined' ? window.location.hostname : '127.0.0.1';
+    return {
+      session_id: randId,
+      status: 'WAITING_FOR_PHONE',
+      created_at: Date.now() / 1000,
+      local_ips: [localHost],
+      connection_urls: {
+        primary_lan: `http://${localHost}:${port}/try-live/mobile?session=${randId}`,
+        localhost: `http://localhost:${port}/try-live/mobile?session=${randId}`,
+        all_lan: [`http://${localHost}:${port}/try-live/mobile?session=${randId}`],
+      },
+    };
+  }
+}
+
+export async function fetchTryLiveStatus(sessionId) {
+  try {
+    const res = await fetch(`${API_BASE}/api/try-live/session/${sessionId}`, {
+      signal: AbortSignal.timeout(3000),
+    });
+    if (!res.ok) throw new Error(`Fetch TryLive status failed: ${res.statusText}`);
+    return await res.json();
+  } catch (err) {
+    return null;
+  }
+}
+
+export async function sendTryLiveControl(sessionId, action) {
+  try {
+    const res = await fetch(`${API_BASE}/api/try-live/session/${sessionId}/control`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action }),
+      signal: AbortSignal.timeout(4000),
+    });
+    if (!res.ok) throw new Error(`Send TryLive control failed: ${res.statusText}`);
+    return await res.json();
+  } catch (err) {
+    console.warn('Send TryLive control failed:', err);
+    return null;
+  }
+}
+
+export async function postTryLiveTelemetry(sessionId, payload) {
+  try {
+    const res = await fetch(`${API_BASE}/api/try-live/session/${sessionId}/telemetry`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+      signal: AbortSignal.timeout(4000),
+    });
+    if (!res.ok) throw new Error(`Post TryLive telemetry failed: ${res.statusText}`);
+    return await res.json();
+  } catch (err) {
+    return null;
+  }
+}
+
+export function createTryLiveWebSocket(sessionId, role, onMessage, onOpen, onClose, onError) {
+  let wsUrl;
+  const protocol = typeof window !== 'undefined' && window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+  const host = typeof window !== 'undefined' ? window.location.host : '127.0.0.1:8000';
+  wsUrl = `${protocol}//${host}/api/try-live/ws/${sessionId}/${role}`;
+
+  let socket = null;
+  let isClosedIntentionally = false;
+  let retryTimer = null;
+
+  function connect() {
+    if (isClosedIntentionally) return;
+    try {
+      socket = new WebSocket(wsUrl);
+
+      socket.onopen = () => {
+        if (onOpen) onOpen();
+      };
+
+      socket.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          if (onMessage) onMessage(data);
+        } catch (ex) {
+          console.warn('Failed parsing TryLive WS message:', ex);
+        }
+      };
+
+      socket.onerror = (err) => {
+        if (onError) onError(err);
+      };
+
+      socket.onclose = () => {
+        if (onClose) onClose();
+        if (!isClosedIntentionally) {
+          retryTimer = setTimeout(connect, 3000);
+        }
+      };
+    } catch (err) {
+      if (!isClosedIntentionally) {
+        retryTimer = setTimeout(connect, 3000);
+      }
+    }
+  }
+
+  connect();
+
+  return {
+    send: (data) => {
+      if (socket && socket.readyState === WebSocket.OPEN) {
+        socket.send(typeof data === 'string' ? data : JSON.stringify(data));
+        return true;
+      }
+      return false;
+    },
+    close: () => {
+      isClosedIntentionally = true;
+      if (retryTimer) clearTimeout(retryTimer);
+      if (socket) socket.close();
+    },
+  };
+}
+
 

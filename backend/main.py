@@ -19,6 +19,7 @@ from backend.routes.results import router as results_router
 from backend.routes.trajectories import router as trajectories_router
 from backend.routes.live_navigation import router as live_navigation_router
 from backend.routes.intelligence_core import router as intelligence_router
+from backend.routes.try_live import router as try_live_router
 
 # Configure logging
 logging.basicConfig(
@@ -49,6 +50,7 @@ app.include_router(results_router, prefix="/api")
 app.include_router(trajectories_router, prefix="/api")
 app.include_router(live_navigation_router, prefix="/api")
 app.include_router(intelligence_router, prefix="/api")
+app.include_router(try_live_router, prefix="/api")
 
 # Mount static figures directory
 repo_root = Path(__file__).resolve().parent.parent
@@ -108,6 +110,20 @@ if frontend_dist.is_dir():
 
     @app.get("/prototype")
     async def serve_prototype_spa():
+        index_file = frontend_dist / "index.html"
+        if index_file.is_file():
+            return FileResponse(index_file)
+        return {"error": "Frontend build index.html not found"}
+
+    @app.get("/try-live")
+    async def serve_try_live_spa():
+        index_file = frontend_dist / "index.html"
+        if index_file.is_file():
+            return FileResponse(index_file)
+        return {"error": "Frontend build index.html not found"}
+
+    @app.get("/try-live/mobile")
+    async def serve_try_live_mobile_spa():
         index_file = frontend_dist / "index.html"
         if index_file.is_file():
             return FileResponse(index_file)

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Activity, ShieldAlert, Satellite, Compass, BookOpen, Wifi, WifiOff, ArrowLeft } from 'lucide-react';
+import { Activity, ShieldAlert, Satellite, Compass, BookOpen, Wifi, WifiOff, ArrowLeft, Smartphone } from 'lucide-react';
 
 export default function Header({
   telemetry,
@@ -7,6 +7,7 @@ export default function Header({
   onOpenResearchModal,
   onBackToLanding,
   onLaunchLiveNavigation,
+  onLaunchTryLive,
 }) {
   const scenario = telemetry?.scenario || 'NORMAL';
   const selectedMode = telemetry?.selected_mode || 'HYBRID';
@@ -132,6 +133,17 @@ export default function Header({
             >
               <Compass className="w-3.5 h-3.5 text-white" />
               <span className="hidden sm:inline">LIVE NAVIGATION</span>
+            </button>
+          )}
+
+          {onLaunchTryLive && (
+            <button
+              onClick={onLaunchTryLive}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono font-bold text-cyan-200 bg-cyan-950/80 hover:bg-cyan-900 border border-cyan-500/50 shadow-lg shadow-cyan-950/40 transition transform hover:-translate-y-0.5"
+              title="Open Real-Time Mobile Sensor Demonstration"
+            >
+              <Smartphone className="w-3.5 h-3.5 text-cyan-400" />
+              <span className="hidden sm:inline">TRY-LIVE</span>
             </button>
           )}
 

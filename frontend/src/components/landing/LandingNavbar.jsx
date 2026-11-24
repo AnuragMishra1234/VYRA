@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Compass, ExternalLink, Play, LayoutDashboard, ChevronRight, FileText } from 'lucide-react';
+import { Compass, ExternalLink, Play, LayoutDashboard, ChevronRight, FileText, Smartphone } from 'lucide-react';
 
 export default function LandingNavbar({ activeView, onViewChange, onOpenResearchModal }) {
   const [scrolled, setScrolled] = useState(false);
@@ -101,6 +101,15 @@ export default function LandingNavbar({ activeView, onViewChange, onOpenResearch
           >
             <Compass className="w-3.5 h-3.5 text-white" />
             <span>LIVE NAVIGATION</span>
+          </button>
+
+          <button
+            onClick={() => onViewChange('try-live')}
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold font-mono bg-cyan-950/80 hover:bg-cyan-900 text-cyan-200 shadow-lg shadow-cyan-950/40 transition transform hover:-translate-y-0.5 border border-cyan-500/50"
+            title="Connect your Android smartphone as a live sensor device"
+          >
+            <Smartphone className="w-3.5 h-3.5 text-cyan-400" />
+            <span>TRY-LIVE</span>
           </button>
 
           {activeView === 'landing' ? (

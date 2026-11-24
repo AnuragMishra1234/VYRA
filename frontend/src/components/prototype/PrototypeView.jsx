@@ -31,6 +31,7 @@ export default function PrototypeView({
   onCloseResearchModal,
   onBackToLanding,
   onLaunchLiveNavigation,
+  onLaunchTryLive,
 }) {
   // Workspace Layout Mode: 'panoramic', 'map', 'forecast', 'analytics'
   const [workspaceMode, setWorkspaceMode] = useState('panoramic');
@@ -44,6 +45,7 @@ export default function PrototypeView({
         onOpenResearchModal={onOpenResearchModal}
         onBackToLanding={onBackToLanding}
         onLaunchLiveNavigation={onLaunchLiveNavigation}
+        onLaunchTryLive={onLaunchTryLive}
       />
 
       {/* 2. Main Workspace Container with Generous Spacing */}

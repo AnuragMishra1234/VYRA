@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import LandingPage from './components/landing/LandingPage';
 import PrototypeView from './components/prototype/PrototypeView';
 import LiveNavigationPage from './components/live-navigation/LiveNavigationPage';
+import TryLiveDashboard from './components/try-live/TryLiveDashboard';
+import TryLiveMobile from './components/try-live/TryLiveMobile';
 import ErrorBoundary from './components/ErrorBoundary';
 import {
   fetchPlaybackState,
@@ -12,10 +14,12 @@ import {
 import { getFallbackTelemetry } from './services/fallbackData';
 
 export default function App() {
-  // View mode: 'landing' (cinematic 3D presentation), 'prototype' (interactive replay dashboard), or 'live-navigation' (demonstration control center)
+  // View mode: 'landing', 'prototype', 'live-navigation', 'try-live', or 'try-live-mobile'
   const [activeView, setActiveView] = useState(() => {
     const hash = window.location.hash;
     const path = window.location.pathname;
+    if (hash.startsWith('#try-live/mobile') || path.startsWith('/try-live/mobile')) return 'try-live-mobile';
+    if (hash === '#try-live' || path === '/try-live') return 'try-live';
     if (hash === '#live-navigation' || path === '/live-navigation') return 'live-navigation';
     if (hash === '#prototype' || path === '/prototype') return 'prototype';
     return 'landing';
@@ -39,7 +43,11 @@ export default function App() {
     const handleHash = () => {
       const hash = window.location.hash;
       const path = window.location.pathname;
-      if (hash === '#live-navigation' || path === '/live-navigation') {
+      if (hash.startsWith('#try-live/mobile') || path.startsWith('/try-live/mobile')) {
+        setActiveView('try-live-mobile');
+      } else if (hash === '#try-live' || path === '/try-live') {
+        setActiveView('try-live');
+      } else if (hash === '#live-navigation' || path === '/live-navigation') {
         setActiveView('live-navigation');
       } else if (hash === '#prototype' || path === '/prototype') {
         setActiveView('prototype');
@@ -257,6 +265,12 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  const launchTryLive = () => {
+    setActiveView('try-live');
+    window.location.hash = '#try-live';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   const backToLanding = () => {
     setActiveView('landing');
     window.location.hash = '';
@@ -265,10 +279,23 @@ export default function App() {
 
   return (
     <>
-      {activeView === 'landing' ? (
+      {activeView === 'try-live-mobile' ? (
+        <ErrorBoundary>
+          <TryLiveMobile />
+        </ErrorBoundary>
+      ) : activeView === 'try-live' ? (
+        <ErrorBoundary>
+          <TryLiveDashboard
+            onBackToLanding={backToLanding}
+            onLaunchPrototype={launchPrototype}
+            onLaunchLiveNavigation={launchLiveNavigation}
+          />
+        </ErrorBoundary>
+      ) : activeView === 'landing' ? (
         <LandingPage
           onLaunchPrototype={launchPrototype}
           onLaunchLiveNavigation={launchLiveNavigation}
+          onLaunchTryLive={launchTryLive}
           isResearchModalOpen={isResearchModalOpen}
           onOpenResearchModal={() => setIsResearchModalOpen(true)}
           onCloseResearchModal={() => setIsResearchModalOpen(false)}
@@ -296,6 +323,7 @@ export default function App() {
           onCloseResearchModal={() => setIsResearchModalOpen(false)}
           onBackToLanding={backToLanding}
           onLaunchLiveNavigation={launchLiveNavigation}
+          onLaunchTryLive={launchTryLive}
         />
       ) : (
         <ErrorBoundary>
@@ -305,6 +333,7 @@ export default function App() {
             isConnected={isConnected}
             onBackToLanding={backToLanding}
             onLaunchPrototype={launchPrototype}
+            onLaunchTryLive={launchTryLive}
           />
         </ErrorBoundary>
       )}
