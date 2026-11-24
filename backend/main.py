@@ -17,6 +17,7 @@ from backend.routes.health import router as health_router
 from backend.routes.playback import router as playback_router
 from backend.routes.results import router as results_router
 from backend.routes.trajectories import router as trajectories_router
+from backend.routes.live_navigation import router as live_navigation_router
 
 # Configure logging
 logging.basicConfig(
@@ -45,6 +46,7 @@ app.include_router(health_router, prefix="/api")
 app.include_router(playback_router, prefix="/api")
 app.include_router(results_router, prefix="/api")
 app.include_router(trajectories_router, prefix="/api")
+app.include_router(live_navigation_router, prefix="/api")
 
 # Mount static figures directory
 repo_root = Path(__file__).resolve().parent.parent

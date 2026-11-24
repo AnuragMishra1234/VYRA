@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import LandingPage from './components/landing/LandingPage';
 import PrototypeView from './components/prototype/PrototypeView';
+import LiveNavigationPage from './components/live-navigation/LiveNavigationPage';
 import {
   fetchPlaybackState,
   sendPlaybackControl,
@@ -10,9 +11,13 @@ import {
 import { getFallbackTelemetry } from './services/fallbackData';
 
 export default function App() {
-  // View mode: 'landing' (cinematic 3D presentation) or 'prototype' (interactive replay dashboard)
+  // View mode: 'landing' (cinematic 3D presentation), 'prototype' (interactive replay dashboard), or 'live-navigation' (demonstration control center)
   const [activeView, setActiveView] = useState(() => {
-    return window.location.hash === '#prototype' ? 'prototype' : 'landing';
+    const hash = window.location.hash;
+    const path = window.location.pathname;
+    if (hash === '#live-navigation' || path === '/live-navigation') return 'live-navigation';
+    if (hash === '#prototype' || path === '/prototype') return 'prototype';
+    return 'landing';
   });
 
   const [telemetry, setTelemetry] = useState(null);
@@ -31,11 +36,22 @@ export default function App() {
   // Sync hash with view state in both directions
   useEffect(() => {
     const handleHash = () => {
-      const isProto = window.location.hash === '#prototype';
-      setActiveView(isProto ? 'prototype' : 'landing');
+      const hash = window.location.hash;
+      const path = window.location.pathname;
+      if (hash === '#live-navigation' || path === '/live-navigation') {
+        setActiveView('live-navigation');
+      } else if (hash === '#prototype' || path === '/prototype') {
+        setActiveView('prototype');
+      } else {
+        setActiveView('landing');
+      }
     };
     window.addEventListener('hashchange', handleHash);
-    return () => window.removeEventListener('hashchange', handleHash);
+    window.addEventListener('popstate', handleHash);
+    return () => {
+      window.removeEventListener('hashchange', handleHash);
+      window.removeEventListener('popstate', handleHash);
+    };
   }, []);
 
   // Initial Data Fetch
@@ -234,6 +250,12 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  const launchLiveNavigation = () => {
+    setActiveView('live-navigation');
+    window.location.hash = '#live-navigation';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   const backToLanding = () => {
     setActiveView('landing');
     window.location.hash = '';
@@ -245,11 +267,12 @@ export default function App() {
       {activeView === 'landing' ? (
         <LandingPage
           onLaunchPrototype={launchPrototype}
+          onLaunchLiveNavigation={launchLiveNavigation}
           isResearchModalOpen={isResearchModalOpen}
           onOpenResearchModal={() => setIsResearchModalOpen(true)}
           onCloseResearchModal={() => setIsResearchModalOpen(false)}
         />
-      ) : (
+      ) : activeView === 'prototype' ? (
         <PrototypeView
           telemetry={telemetry}
           status={status}
@@ -271,6 +294,15 @@ export default function App() {
           onOpenResearchModal={() => setIsResearchModalOpen(true)}
           onCloseResearchModal={() => setIsResearchModalOpen(false)}
           onBackToLanding={backToLanding}
+          onLaunchLiveNavigation={launchLiveNavigation}
+        />
+      ) : (
+        <LiveNavigationPage
+          telemetry={telemetry}
+          pathsData={pathsData}
+          isConnected={isConnected}
+          onBackToLanding={backToLanding}
+          onLaunchPrototype={launchPrototype}
         />
       )}
     </>

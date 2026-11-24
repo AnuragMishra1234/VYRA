@@ -94,6 +94,15 @@ export default function LandingNavbar({ activeView, onViewChange, onOpenResearch
             <span>Research Tables</span>
           </button>
 
+          <button
+            onClick={() => onViewChange('live-navigation')}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-bold font-mono bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white shadow-lg shadow-emerald-600/30 transition transform hover:-translate-y-0.5 border border-emerald-400/40"
+            title="Open Live Navigation Demonstration Suite"
+          >
+            <Compass className="w-3.5 h-3.5 text-white" />
+            <span>LIVE NAVIGATION</span>
+          </button>
+
           {activeView === 'landing' ? (
             <button
               onClick={() => onViewChange('prototype')}

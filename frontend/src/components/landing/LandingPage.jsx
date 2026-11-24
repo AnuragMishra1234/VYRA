@@ -18,6 +18,7 @@ import { Play, ArrowRight, Compass, ShieldCheck, FileText } from 'lucide-react';
 
 export default function LandingPage({
   onLaunchPrototype,
+  onLaunchLiveNavigation,
   isResearchModalOpen,
   onOpenResearchModal,
   onCloseResearchModal,
@@ -34,6 +35,7 @@ export default function LandingPage({
         activeView="landing"
         onViewChange={(v) => {
           if (v === 'prototype') onLaunchPrototype();
+          if (v === 'live-navigation' && onLaunchLiveNavigation) onLaunchLiveNavigation();
         }}
         onOpenResearchModal={onOpenResearchModal}
       />

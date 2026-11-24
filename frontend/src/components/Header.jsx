@@ -6,6 +6,7 @@ export default function Header({
   isConnected,
   onOpenResearchModal,
   onBackToLanding,
+  onLaunchLiveNavigation,
 }) {
   const scenario = telemetry?.scenario || 'NORMAL';
   const selectedMode = telemetry?.selected_mode || 'HYBRID';
@@ -122,6 +123,17 @@ export default function Header({
             <BookOpen className="w-3.5 h-3.5 text-blue-400" />
             <span className="hidden sm:inline">Research Tables</span>
           </button>
+
+          {onLaunchLiveNavigation && (
+            <button
+              onClick={onLaunchLiveNavigation}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono font-bold text-white bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 border border-emerald-400/40 shadow-lg shadow-emerald-600/20 transition transform hover:-translate-y-0.5"
+              title="Open Live Navigation Control Center"
+            >
+              <Compass className="w-3.5 h-3.5 text-white" />
+              <span className="hidden sm:inline">LIVE NAVIGATION</span>
+            </button>
+          )}
 
           <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] bg-slate-950 border border-slate-800/80 text-slate-400">
             {isConnected ? (
